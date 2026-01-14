@@ -9,6 +9,9 @@ import { TenantController } from "../domains/organization/controllers/tenant.con
 import { TenantService } from "../domains/organization/services/tenant.service";
 import { TenantRepository } from "../domains/organization/repositories/tenant.repository";
 import { TenantMembershipRepository } from "../domains/organization/repositories/tenantMembership.repository";
+import { GroupController } from "../domains/organization/controllers/group.controller";
+import { GroupService } from "../domains/organization/services/group.service";
+import { GroupRepository } from "../domains/organization/repositories/group.repository";
 
 // Register services
 container.registerSingleton(ApiService);
@@ -24,5 +27,10 @@ container.registerSingleton(TenantRepository);
 container.registerSingleton(TenantMembershipRepository);
 container.registerSingleton(TenantService);
 container.registerSingleton(TenantController);
+
+// Register Group components as singletons
+container.registerSingleton(GroupRepository);
+container.registerSingleton(GroupService);
+container.registerSingleton(GroupController);
 
 export { container };
