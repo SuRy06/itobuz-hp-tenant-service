@@ -1,9 +1,11 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { container } from "tsyringe";
 import { TenantController } from "../controllers/tenant.controller";
 import { validateRequest } from "../../../infrastructure/middleware/validateRequest.middleware";
+import { validateParams } from "../../../infrastructure/middleware/validateParams.middleware";
 import { deactivateTenantSchema } from "../validation/tenant-deactivate.validation";
 import { addUserToTenantSchema } from "../validation/tenant-add-user.validation";
+import { getUserPermissionsSchema } from "../validation/tenant-user-permissions.validation";
 
 const router = Router();
 const tenantController = container.resolve(TenantController);
@@ -302,6 +304,60 @@ router.post(
   "/:tenantId/users",
   validateRequest(addUserToTenantSchema),
   tenantController.addUserToTenant
+);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/users/{userId}/permissions:
+ *   get:
+ *     tags:
+ *       - Tenants
+ *     summary: Get effective permissions for a tenant user
+ *     description: |
+ *       Returns the combined permissions for a user in a tenant (role-derived + direct permissions).
+ *       Response is static for now and suitable for BFF Redis caching.
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Tenant ID
+ *         example: tenant_a1b2c3d4-e5f6-7890-abcd-ef1234567890
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *         example: user_123e4567-e89b-12d3-a456-426655440000
+ *     responses:
+ *       200:
+ *         description: Permissions for the user in the tenant
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user_id:
+ *                   type: string
+ *                   example: user_123e4567-e89b-12d3-a456-426655440000
+ *                 tenant_id:
+ *                   type: string
+ *                   example: tenant_a1b2c3d4-e5f6-7890-abcd-ef1234567890
+ *                 membership_version:
+ *                   type: integer
+ *                   example: 12
+ *                 permissions:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["permission.code.1","permission.code.2"]
+ */
+router.get(
+  "/:tenantId/users/:userId/permissions",
+  validateParams(getUserPermissionsSchema),
+  tenantController.getUserPermissions
 );
 
 export = router;
