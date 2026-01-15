@@ -106,10 +106,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByIdAndTenant(
-        mockGroupId,
-        mockTenantId
-      );
+      const result = await groupRepository.findByIdAndTenant(mockGroupId, mockTenantId);
 
       expect(getGroupModel).toHaveBeenCalledWith(mockConnection);
       expect(mockFindOne).toHaveBeenCalledWith({
@@ -129,10 +126,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByIdAndTenant(
-        "group-123",
-        "wrong-tenant"
-      );
+      const result = await groupRepository.findByIdAndTenant("group-123", "wrong-tenant");
 
       expect(result).toBeNull();
     });
@@ -202,10 +196,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByTenantAndParent(
-        mockTenantId,
-        mockParentGroupId
-      );
+      const result = await groupRepository.findByTenantAndParent(mockTenantId, mockParentGroupId);
 
       expect(getGroupModel).toHaveBeenCalledWith(mockConnection);
       expect(mockFind).toHaveBeenCalledWith({
@@ -234,10 +225,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByTenantAndParent(
-        mockTenantId,
-        null
-      );
+      const result = await groupRepository.findByTenantAndParent(mockTenantId, null);
 
       expect(mockFind).toHaveBeenCalledWith({
         tenantId: mockTenantId,
@@ -266,11 +254,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByNameAndParent(
-        mockTenantId,
-        mockName,
-        mockParentGroupId
-      );
+      const result = await groupRepository.findByNameAndParent(mockTenantId, mockName, mockParentGroupId);
 
       expect(getGroupModel).toHaveBeenCalledWith(mockConnection);
       expect(mockFindOne).toHaveBeenCalledWith({
@@ -299,11 +283,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByNameAndParent(
-        mockTenantId,
-        mockName,
-        null
-      );
+      const result = await groupRepository.findByNameAndParent(mockTenantId, mockName, null);
 
       expect(mockFindOne).toHaveBeenCalledWith({
         tenantId: mockTenantId,
@@ -322,11 +302,7 @@ describe("GroupRepository", () => {
       mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
       (getGroupModel as jest.Mock).mockReturnValue(mockGroupModel);
 
-      const result = await groupRepository.findByNameAndParent(
-        "tenant-123",
-        "NonExistent",
-        null
-      );
+      const result = await groupRepository.findByNameAndParent("tenant-123", "NonExistent", null);
 
       expect(result).toBeNull();
     });

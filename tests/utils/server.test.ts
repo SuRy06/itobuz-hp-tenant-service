@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import supertest from "supertest";
 import createServer from "../../src/bootstrap/server";
 

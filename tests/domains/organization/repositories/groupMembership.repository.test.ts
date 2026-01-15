@@ -1,88 +1,75 @@
 import "reflect-metadata";
 import { GroupMembershipRepository } from "../../../../src/domains/organization/repositories/groupMembership.repository";
+import * as modelModule from "../../../../src/domains/organization/models/groupMembership.model";
 import { MongoDBConnectionManager } from "../../../../src/infrastructure/database/mongodbmanager.service";
-import { getGroupMembershipModel } from "../../../../src/domains/organization/models/groupMembership.model";
-import { GroupMembershipInterface } from "../../../../src/domains/organization/interfaces/groupMembership.interface";
 
-jest.mock("../../../../src/domains/organization/models/groupMembership.model");
-jest.mock("../../../../src/infrastructure/database/mongodbmanager.service");
+jest.mock("../../../../src/domains/organization/models/groupMembership.model.ts");
 
 describe("GroupMembershipRepository", () => {
-  let repository: GroupMembershipRepository;
-  let mockMongoManager: jest.Mocked<MongoDBConnectionManager>;
-  let mockGroupMembershipModel: any;
-  let mockConnection: any;
+  const mockedGetModel = modelModule.getGroupMembershipModel as jest.Mock;
+
+  const fakeConnection = Symbol("conn");
+  const fakeMongoManager = {
+    getConnection: jest.fn().mockReturnValue(fakeConnection),
+  } as unknown as MongoDBConnectionManager;
 
   beforeEach(() => {
-    mockConnection = {};
-    mockMongoManager = {
-      getConnection: jest.fn().mockReturnValue(mockConnection),
-    } as any;
-
-    mockGroupMembershipModel = jest.fn();
-    (getGroupMembershipModel as jest.Mock).mockReturnValue(
-      mockGroupMembershipModel
-    );
-
-    repository = new GroupMembershipRepository(mockMongoManager);
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe("create", () => {
-    it("should create and save a new group membership", async () => {
-      const membershipData: Partial<GroupMembershipInterface> = {
-        groupId: "group-123",
-        userId: "user-456",
-      };
-      const savedMembership = { ...membershipData, _id: "membership-789" };
-      const mockSave = jest.fn().mockResolvedValue(savedMembership);
+  test("create - constructs model, calls save and returns saved document", async () => {
+    const membershipData = { groupId: "g1", userId: "u1", role: "member" };
+    const savedDoc = { ...membershipData, _id: "savedId" };
 
-      mockGroupMembershipModel.mockImplementation((data: any) => ({
-        ...data,
-        save: mockSave,
-      }));
+    const saveMock = jest.fn().mockResolvedValue(savedDoc);
+    const ModelConstructorMock = jest.fn().mockImplementation((data) => ({
+      ...data,
+      save: saveMock,
+    }));
 
-      const result = await repository.create(membershipData);
+    mockedGetModel.mockReturnValue(ModelConstructorMock);
 
-      expect(getGroupMembershipModel).toHaveBeenCalledWith(mockConnection);
-      expect(mockGroupMembershipModel).toHaveBeenCalledWith(membershipData);
-      expect(mockSave).toHaveBeenCalled();
-      expect(result).toEqual(savedMembership);
-    });
+    const repo = new GroupMembershipRepository(fakeMongoManager);
+    const result = await repo.create(membershipData);
+
+    expect(mockedGetModel).toHaveBeenCalled();
+    expect(ModelConstructorMock).toHaveBeenCalledWith(membershipData);
+    expect(saveMock).toHaveBeenCalled();
+    expect(result).toEqual(savedDoc);
   });
 
-  describe("findByGroupAndUser", () => {
-    it("should find membership by groupId and userId", async () => {
-      const groupId = "group-123";
-      const userId = "user-456";
-      const foundMembership = { groupId, userId, _id: "membership-789" };
-      const mockExec = jest.fn().mockResolvedValue(foundMembership);
-      const mockFindOne = jest.fn().mockReturnValue({ exec: mockExec });
+  test("findByGroupAndUser - calls findOne with filters and returns document", async () => {
+    const groupId = "g2";
+    const userId = "u2";
+    const foundDoc = { groupId, userId, role: "admin" };
 
-      mockGroupMembershipModel.findOne = mockFindOne;
+    const execMock = jest.fn().mockResolvedValue(foundDoc);
+    const findOneMock = jest.fn().mockReturnValue({ exec: execMock });
 
-      const result = await repository.findByGroupAndUser(groupId, userId);
+    mockedGetModel.mockReturnValue({ findOne: findOneMock });
 
-      expect(getGroupMembershipModel).toHaveBeenCalledWith(mockConnection);
-      expect(mockFindOne).toHaveBeenCalledWith({ groupId, userId });
-      expect(mockExec).toHaveBeenCalled();
-      expect(result).toEqual(foundMembership);
-    });
+    const repo = new GroupMembershipRepository(fakeMongoManager);
+    const result = await repo.findByGroupAndUser(groupId, userId);
 
-    it("should return null when membership is not found", async () => {
-      const groupId = "group-123";
-      const userId = "user-456";
-      const mockExec = jest.fn().mockResolvedValue(null);
-      const mockFindOne = jest.fn().mockReturnValue({ exec: mockExec });
+    expect(mockedGetModel).toHaveBeenCalled();
+    expect(findOneMock).toHaveBeenCalledWith({ groupId, userId });
+    expect(execMock).toHaveBeenCalled();
+    expect(result).toEqual(foundDoc);
+  });
 
-      mockGroupMembershipModel.findOne = mockFindOne;
+  test("findByGroupAndUser - returns null when not found", async () => {
+    const groupId = "no";
+    const userId = "one";
 
-      const result = await repository.findByGroupAndUser(groupId, userId);
+    const execMock = jest.fn().mockResolvedValue(null);
+    const findOneMock = jest.fn().mockReturnValue({ exec: execMock });
 
-      expect(result).toBeNull();
-    });
+    mockedGetModel.mockReturnValue({ findOne: findOneMock });
+
+    const repo = new GroupMembershipRepository(fakeMongoManager);
+    const result = await repo.findByGroupAndUser(groupId, userId);
+
+    expect(result).toBeNull();
+    expect(findOneMock).toHaveBeenCalledWith({ groupId, userId });
   });
 });

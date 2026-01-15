@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import axios from "axios";
 import { ApiService } from "../../src/infrastructure/services/api.service";
 

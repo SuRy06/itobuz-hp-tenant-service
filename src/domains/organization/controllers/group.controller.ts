@@ -35,44 +35,4 @@ export class GroupController {
       next(error);
     }
   };
-
-  addUserToGroup = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
-    try {
-      const { tenantId, groupId } = req.params;
-      const { userId } = req.body;
-
-      if (!tenantId) {
-        throw new HttpError(400, "Tenant ID is required");
-      }
-
-      if (!groupId) {
-        throw new HttpError(400, "Group ID is required");
-      }
-
-      if (!userId) {
-        throw new HttpError(400, "User ID is required");
-      }
-
-      // Add user to group
-      const membership = await this.groupService.addUserToGroup(
-        tenantId,
-        groupId,
-        { userId }
-      );
-
-      res.status(201).json({
-        tenantId: membership.tenantId,
-        groupId: membership.groupId,
-        userId: membership.userId,
-        status: membership.status,
-        createdAt: new Date(),
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
 }

@@ -1,10 +1,7 @@
 import { v4 as uuid4 } from "uuid";
 import { injectable } from "tsyringe";
 import { CreateGroupDTO, GroupInterface } from "../interfaces/group.interface";
-import {
-  AddUserToGroupDTO,
-  GroupMembershipInterface,
-} from "../interfaces/groupMembership.interface";
+import { AddUserToGroupDTO, GroupMembershipInterface } from "../interfaces/groupMembership.interface";
 import { GroupRepository } from "../repositories/group.repository";
 import { TenantRepository } from "../repositories/tenant.repository";
 import { GroupMembershipRepository } from "../repositories/groupMembership.repository";
@@ -84,26 +81,16 @@ export class GroupService {
     }
   }
 
-  async addUserToGroup(
-    tenantId: string,
-    groupId: string,
-    data: AddUserToGroupDTO
-  ): Promise<GroupMembershipInterface> {
+  async addUserToGroup(tenantId: string, groupId: string, data: AddUserToGroupDTO): Promise<GroupMembershipInterface> {
     try {
       // TODO: Check GROUP_USER_ADD permission
       // This would require auth middleware to be implemented
 
       // Validate group exists and belongs to tenant
-      const group = await this.groupRepository.findByIdAndTenant(
-        groupId,
-        tenantId
-      );
+      const group = await this.groupRepository.findByIdAndTenant(groupId, tenantId);
 
       if (!group) {
-        throw new HttpError(
-          404,
-          "Group not found or does not belong to this tenant"
-        );
+        throw new HttpError(404, "Group not found or does not belong to this tenant");
       }
 
       if (group.status !== GroupStatusEnum.ACTIVE) {
@@ -122,38 +109,21 @@ export class GroupService {
       }
 
       // Validate user is ACTIVE member of tenant
-      const tenantMembership =
-        await this.tenantMembershipRepository.findByTenantAndUser(
-          tenantId,
-          data.userId
-        );
+      const tenantMembership = await this.tenantMembershipRepository.findByTenantAndUser(tenantId, data.userId);
 
       if (!tenantMembership) {
-        throw new HttpError(
-          400,
-          "User must be a member of the tenant before joining a group"
-        );
+        throw new HttpError(400, "User must be a member of the tenant before joining a group");
       }
 
       if (tenantMembership.status !== TenantMembershipStatusEnum.ACTIVE) {
-        throw new HttpError(
-          400,
-          `User must be an ACTIVE tenant member. Current status: ${tenantMembership.status}`
-        );
+        throw new HttpError(400, `User must be an ACTIVE tenant member. Current status: ${tenantMembership.status}`);
       }
 
       // Check if membership already exists
-      const existingMembership =
-        await this.groupMembershipRepository.findByGroupAndUser(
-          groupId,
-          data.userId
-        );
+      const existingMembership = await this.groupMembershipRepository.findByGroupAndUser(groupId, data.userId);
 
       if (existingMembership) {
-        throw new HttpError(
-          409,
-          `User already has ${existingMembership.status} membership in this group`
-        );
+        throw new HttpError(409, `User already has ${existingMembership.status} membership in this group`);
       }
 
       // Create new ACTIVE membership

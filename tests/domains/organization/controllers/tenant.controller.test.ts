@@ -727,4 +727,102 @@ describe("TenantController", () => {
       expect(mockResponse.status).not.toHaveBeenCalled();
     });
   });
+
+  describe("getUserPermissions", () => {
+    beforeEach(() => {
+      mockTenantService.getUserPermissions = jest.fn();
+    });
+
+    it("should return permissions and 200 status", async () => {
+      // Arrange
+      const mockResult = {
+        userId: "user_1",
+        tenantId: "tenant_1",
+        membershipVersion: 12,
+        permissions: ["permission.code.1", "permission.code.2"],
+      };
+
+      mockRequest.params = { tenantId: "tenant_1", userId: "user_1" };
+      mockTenantService.getUserPermissions.mockResolvedValue(mockResult as any);
+
+      // Act
+      await tenantController.getUserPermissions(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      // Assert
+      expect(mockTenantService.getUserPermissions).toHaveBeenCalledWith(
+        "tenant_1",
+        "user_1"
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(mockResult);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("should throw error when tenantId is missing", async () => {
+      // Arrange
+      mockRequest.params = {};
+
+      // Act
+      await tenantController.getUserPermissions(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      // Assert
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: "Tenant ID is required",
+        })
+      );
+      expect(mockTenantService.getUserPermissions).not.toHaveBeenCalled();
+    });
+
+    it("should throw error when userId is missing", async () => {
+      // Arrange
+      mockRequest.params = { tenantId: "tenant_1" };
+
+      // Act
+      await tenantController.getUserPermissions(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      // Assert
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: "User ID is required",
+        })
+      );
+      expect(mockTenantService.getUserPermissions).not.toHaveBeenCalled();
+    });
+
+    it("should call next with service error", async () => {
+      // Arrange
+      const serviceError = new Error("Failed to fetch permissions");
+
+      mockRequest.params = { tenantId: "tenant_1", userId: "user_1" };
+      mockTenantService.getUserPermissions.mockRejectedValue(serviceError);
+
+      // Act
+      await tenantController.getUserPermissions(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      // Assert
+      expect(mockTenantService.getUserPermissions).toHaveBeenCalled();
+      expect(mockNext).toHaveBeenCalledWith(serviceError);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+      expect(mockResponse.json).not.toHaveBeenCalled();
+    });
+  });
 });

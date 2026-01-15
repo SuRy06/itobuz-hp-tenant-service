@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { AWSSTSService } from "../../src/infrastructure/aws/AWSSTSService";
 import LOG from "../../src/library/logging";
 

@@ -1037,4 +1037,36 @@ describe("TenantService", () => {
       );
     });
   });
+
+  describe("TenantService.getUserPermissions (static)", () => {
+    let svc: TenantService;
+
+    beforeEach(() => {
+      // service constructor requires repos but this method is static-only for now
+      const tenantRepo: any = {};
+      const orgRepo: any = {};
+      const membershipRepo: any = {};
+
+      svc = new TenantService(tenantRepo, orgRepo, membershipRepo);
+    });
+
+    it("returns merged, deduped and sorted permissions with expected shape", async () => {
+      const out = await svc.getUserPermissions("tenant_abc", "user_xyz");
+
+      expect(out).toBeDefined();
+      expect(out.userId).toBe("user_xyz");
+      expect(out.tenantId).toBe("tenant_abc");
+      expect(out.membershipVersion).toBe(12);
+      expect(Array.isArray(out.permissions)).toBe(true);
+
+      // deduped and sorted
+      expect(out.permissions).toEqual(["user:read:any", "user:update:any"]);
+    });
+
+    it("is deterministic across multiple calls", async () => {
+      const a = await svc.getUserPermissions("t", "u");
+      const b = await svc.getUserPermissions("t", "u");
+      expect(a.permissions).toEqual(b.permissions);
+    });
+  });
 });

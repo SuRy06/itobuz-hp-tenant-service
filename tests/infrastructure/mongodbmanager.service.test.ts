@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { MongoDBConnectionManager } from "../../src/infrastructure/database/mongodbmanager.service";
 import mongoose from "mongoose";
 import LOG from "../../src/library/logging";

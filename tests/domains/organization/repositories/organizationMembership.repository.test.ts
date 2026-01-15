@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import { OrganizationMembershipRepository } from "../../../../src/domains/organization/repositories/organizationMembership.repository";
 import { MongoDBConnectionManager } from "../../../../src/infrastructure/database/mongodbmanager.service";
 import { getOrganizationMembershipModel } from "../../../../src/domains/organization/models/organizationMembership.model";
@@ -7,7 +6,7 @@ import { OrganizationMembershipInterface } from "../../../../src/domains/organiz
 jest.mock(
   "../../../../src/domains/organization/models/organizationMembership.model"
 );
-jest.mock("../../../../src/infrastructure/database/mongodbmanager.service");
+jest.mock("../../../infrastructure/database/mongodbmanager.service");
 
 describe("OrganizationMembershipRepository", () => {
   let repository: OrganizationMembershipRepository;
