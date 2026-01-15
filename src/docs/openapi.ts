@@ -87,9 +87,7 @@ export function getOpenApiSpec() {
         version: pkgInfo.version,
         description: pkgInfo.description,
       },
-      servers: [
-        { url: `http://localhost:${CONFIG.SERVER.PORT}`, description: "Local" },
-      ],
+      servers: [{ url: `http://localhost:${CONFIG.SERVER.PORT}`, description: "Local" }],
       components: {
         securitySchemes: {
           bearerAuth: {
@@ -99,7 +97,10 @@ export function getOpenApiSpec() {
           },
         },
       },
-      tags: [{ name: "Health", description: "Health and readiness endpoints" }],
+      tags: [
+        { name: "Health", description: "Health and readiness endpoints" },
+        { name: "Permissions", description: "Permission registry and RBAC metadata" },
+      ],
     },
     apis: routeFiles,
   };
