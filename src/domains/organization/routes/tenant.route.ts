@@ -15,7 +15,9 @@ const router = Router();
 const groupController = container.resolve(GroupController);
 const tenantController = container.resolve(TenantController);
 const roleController = container.resolve(RoleController);
-const tenantMembershipController = container.resolve(TenantMembershipController);
+const tenantMembershipController = container.resolve(
+  TenantMembershipController
+);
 
 /**
  * @openapi
@@ -103,7 +105,11 @@ const tenantMembershipController = container.resolve(TenantMembershipController)
  *                   type: string
  *                   example: An unexpected error occurred
  */
-router.post("/:tenantId/deactivate", validateRequest(deactivateTenantSchema), tenantController.deactivateTenant);
+router.post(
+  "/:tenantId/deactivate",
+  validateRequest(deactivateTenantSchema),
+  tenantController.deactivateTenant
+);
 
 /**
  * @openapi
@@ -303,7 +309,11 @@ router.get("/:tenantId", tenantController.getTenant);
  *                   type: string
  *                   example: An unexpected error occurred
  */
-router.post("/:tenantId/users", validateRequest(addUserToTenantSchema), tenantController.addUserToTenant);
+router.post(
+  "/:tenantId/users",
+  validateRequest(addUserToTenantSchema),
+  tenantController.addUserToTenant
+);
 
 /**
  * @openapi
@@ -399,11 +409,17 @@ router.get(
  */
 router.post("/:tenantId/roles", roleController.createRole);
 
-router.patch("/:tenantId/roles/:roleId/permissions", roleController.updateRolePermissions);
+router.patch(
+  "/:tenantId/roles/:roleId/permissions",
+  roleController.updateRolePermissions
+);
 
 router.get("/:tenantId/roles", roleController.listRole);
 
-router.patch("/:tenantId/user/:userId/roles", tenantMembershipController.updateTenantMembershipRole);
+router.patch(
+  "/:tenantId/user/:userId/roles",
+  tenantMembershipController.updateTenantMembershipRole
+);
 
 /**
  * @openapi
@@ -478,7 +494,10 @@ router.patch("/:tenantId/user/:userId/roles", tenantMembershipController.updateT
  *       404:
  *         description: Permission not found in registry
  */
-router.post("/:tenantId/users/:userId/permissions/allow", tenantMembershipController.allowPermissionOverride);
+router.post(
+  "/:tenantId/users/:userId/permissions/allow",
+  tenantMembershipController.allowPermissionOverride
+);
 
 /**
  * @openapi
@@ -553,7 +572,10 @@ router.post("/:tenantId/users/:userId/permissions/allow", tenantMembershipContro
  *       404:
  *         description: Permission not found in registry
  */
-router.post("/:tenantId/users/:userId/permissions/deny", tenantMembershipController.denyPermissionOverride);
+router.post(
+  "/:tenantId/users/:userId/permissions/deny",
+  tenantMembershipController.denyPermissionOverride
+);
 
 /**
  * @openapi
@@ -616,8 +638,14 @@ router.delete(
   "/:tenantId/users/:userId/permissions/:permissionId",
   tenantMembershipController.removePermissionOverride
 );
-router.post("/:tenantId/users/:userId/suspend", tenantMembershipController.suspendTenantMember);
-router.post("/:tenantId/users/:userId/unsuspend", tenantMembershipController.unsuspendTenantMember);
+router.post(
+  "/:tenantId/users/:userId/suspend",
+  tenantMembershipController.suspendTenantMember
+);
+router.post(
+  "/:tenantId/users/:userId/unsuspend",
+  tenantMembershipController.unsuspendTenantMember
+);
 
 /**
  * @openapi
@@ -742,5 +770,239 @@ router.post("/:tenantId/users/:userId/unsuspend", tenantMembershipController.uns
  *                   type: string
  *                   example: An unexpected error occurred
  */
-router.post("/:tenantId/groups", validateRequest(createGroupSchema), groupController.createGroup);
+router.post(
+  "/:tenantId/groups",
+  validateRequest(createGroupSchema),
+  groupController.createGroup
+);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/groups/{groupId}/users:
+ *   post:
+ *     tags:
+ *       - Groups
+ *     summary: Add user to group
+ *     description: |
+ *       Assign users to groups for business organization and credential-sharing scopes (if applicable).
+ *       Requires user is already a tenant member.
+ *
+ *       **Requirements:**
+ *       - Requires GROUP_USER_ADD permission
+ *       - User must be an ACTIVE tenant member
+ *       - Group must be ACTIVE
+ *       - Enforces unique membership per user per group
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
+ *         example: tenant_uuid
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Group ID
+ *         example: group_uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: User UUID to add to the group
+ *                 example: user_uuid
+ *     responses:
+ *       201:
+ *         description: User successfully added to group
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tenantId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: Tenant identifier
+ *                   example: tenant_uuid
+ *                 groupId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: Group identifier
+ *                   example: group_uuid
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: User identifier
+ *                   example: user_uuid
+ *                 status:
+ *                   type: string
+ *                   enum: [ACTIVE]
+ *                   description: Membership status
+ *                   example: ACTIVE
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp when the membership was created
+ *                   example: 2025-12-18T10:22:00Z
+ *       400:
+ *         description: Bad request - User not ACTIVE tenant member, group not ACTIVE, or tenant not ACTIVE
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User must be an ACTIVE tenant member. Current status: SUSPENDED"
+ *       404:
+ *         description: Tenant, group, or user membership not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Group not found or does not belong to this tenant
+ *       409:
+ *         description: Conflict - User already member of group
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: User already has ACTIVE membership in this group
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: An unexpected error occurred
+ */
+router.post(
+  "/:tenantId/groups/:groupId/users",
+  validateRequest(addUserToGroupSchema),
+  groupController.addUserToGroup
+);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/groups/{groupId}/users/{userId}:
+ *   delete:
+ *     tags:
+ *       - Groups
+ *     summary: Remove user from group
+ *     description: |
+ *       Remove a user from a group without affecting tenant membership.
+ *       This operation is idempotent - repeated calls will return deleted=true.
+ *
+ *       **Requirements:**
+ *       - Requires GROUP_USER_REMOVE permission
+ *       - Idempotent delete (repeat returns deleted=true)
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
+ *         example: tenant_uuid
+ *       - in: path
+ *         name: groupId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Group ID
+ *         example: group_uuid
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: User ID
+ *         example: user_uuid
+ *     responses:
+ *       200:
+ *         description: User successfully removed from group
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tenantId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: Tenant identifier
+ *                   example: tenant_uuid
+ *                 groupId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: Group identifier
+ *                   example: group_uuid
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: User identifier
+ *                   example: user_uuid
+ *                 deleted:
+ *                   type: boolean
+ *                   description: Indicates the user was removed (always true, even on repeated calls)
+ *                   example: true
+ *       400:
+ *         description: Bad request - Missing required parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tenant ID is required
+ *       404:
+ *         description: Tenant or group not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Group not found or does not belong to this tenant
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: An unexpected error occurred
+ */
+router.delete(
+  "/:tenantId/groups/:groupId/users/:userId",
+  groupController.removeUserFromGroup
+);
+
 export = router;

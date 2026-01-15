@@ -7,7 +7,11 @@ import { HttpError } from "../../common/errors/http.error";
 export class GroupController {
   constructor(private readonly groupService: GroupService) {}
 
-  createGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  createGroup = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { tenantId } = req.params;
       const { name, parentGroupId } = req.body;
@@ -31,6 +35,79 @@ export class GroupController {
         status: group.status,
         createdAt: group.createdAt,
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  addUserToGroup = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { tenantId, groupId } = req.params;
+      const { userId } = req.body;
+
+      if (!tenantId) {
+        throw new HttpError(400, "Tenant ID is required");
+      }
+
+      if (!groupId) {
+        throw new HttpError(400, "Group ID is required");
+      }
+
+      if (!userId) {
+        throw new HttpError(400, "User ID is required");
+      }
+
+      // Add user to group
+      const membership = await this.groupService.addUserToGroup(
+        tenantId,
+        groupId,
+        { userId }
+      );
+
+      res.status(201).json({
+        tenantId: membership.tenantId,
+        groupId: membership.groupId,
+        userId: membership.userId,
+        status: membership.status,
+        createdAt: new Date(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  removeUserFromGroup = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { tenantId, groupId, userId } = req.params;
+
+      if (!tenantId) {
+        throw new HttpError(400, "Tenant ID is required");
+      }
+
+      if (!groupId) {
+        throw new HttpError(400, "Group ID is required");
+      }
+
+      if (!userId) {
+        throw new HttpError(400, "User ID is required");
+      }
+
+      // Remove user from group
+      const result = await this.groupService.removeUserFromGroup(
+        tenantId,
+        groupId,
+        userId
+      );
+
+      res.status(200).json(result);
     } catch (error) {
       next(error);
     }

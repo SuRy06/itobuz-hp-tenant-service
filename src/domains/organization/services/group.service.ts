@@ -139,4 +139,56 @@ export class GroupService {
       throw error;
     }
   }
+
+  async removeUserFromGroup(
+    tenantId: string,
+    groupId: string,
+    userId: string
+  ): Promise<{
+    tenantId: string;
+    groupId: string;
+    userId: string;
+    deleted: boolean;
+  }> {
+    try {
+      // TODO: Check GROUP_USER_REMOVE permission
+      // This would require auth middleware to be implemented
+
+      // Validate group exists and belongs to tenant
+      const group = await this.groupRepository.findByIdAndTenant(
+        groupId,
+        tenantId
+      );
+
+      if (!group) {
+        throw new HttpError(
+          404,
+          "Group not found or does not belong to this tenant"
+        );
+      }
+
+      // Validate tenant exists
+      const tenant = await this.tenantRepository.findById(tenantId);
+
+      if (!tenant) {
+        throw new HttpError(404, "Tenant not found");
+      }
+
+      // Attempt to delete the membership (idempotent)
+      await this.groupMembershipRepository.deleteByGroupAndUser(
+        groupId,
+        userId
+      );
+
+      // Always return deleted: true (idempotent behavior)
+      return {
+        tenantId,
+        groupId,
+        userId,
+        deleted: true,
+      };
+    } catch (error: any) {
+      throw error;
+    }
+  }
 }

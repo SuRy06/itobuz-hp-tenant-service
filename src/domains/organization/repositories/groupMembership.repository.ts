@@ -26,4 +26,15 @@ export class GroupMembershipRepository {
     );
     return await GroupMembership.findOne({ groupId, userId }).exec();
   }
+
+  async deleteByGroupAndUser(
+    groupId: string,
+    userId: string
+  ): Promise<boolean> {
+    const GroupMembership = getGroupMembershipModel(
+      this.mongoManager.getConnection()
+    );
+    const result = await GroupMembership.deleteOne({ groupId, userId }).exec();
+    return result.deletedCount > 0;
+  }
 }
