@@ -162,5 +162,118 @@ describe("GroupController", () => {
       expect(mockNext).toHaveBeenCalledWith(error);
       expect(mockResponse.status).not.toHaveBeenCalled();
     });
+
+    describe("addUserToGroup", () => {
+      beforeEach(() => {
+        mockGroupService.addUserToGroup = jest.fn();
+      });
+
+      it("should add user to group successfully", async () => {
+        const mockMembership = {
+          tenantId: "tenant-123",
+          groupId: "group-123",
+          userId: "user-123",
+          status: "active",
+        } as any;
+
+        mockRequest.params = { tenantId: "tenant-123", groupId: "group-123" };
+        mockRequest.body = { userId: "user-123" };
+        mockGroupService.addUserToGroup.mockResolvedValue(mockMembership);
+
+        await groupController.addUserToGroup(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockGroupService.addUserToGroup).toHaveBeenCalledWith(
+          "tenant-123",
+          "group-123",
+          { userId: "user-123" }
+        );
+        expect(mockResponse.status).toHaveBeenCalledWith(201);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          tenantId: "tenant-123",
+          groupId: "group-123",
+          userId: "user-123",
+          status: "active",
+          createdAt: expect.any(Date),
+        });
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+
+      it("should throw HttpError when tenantId is missing", async () => {
+        mockRequest.params = { groupId: "group-123" };
+        mockRequest.body = { userId: "user-123" };
+
+        await groupController.addUserToGroup(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockNext).toHaveBeenCalledWith(
+          expect.objectContaining({
+            statusCode: 400,
+            message: "Tenant ID is required",
+          })
+        );
+        expect(mockGroupService.addUserToGroup).not.toHaveBeenCalled();
+      });
+
+      it("should throw HttpError when groupId is missing", async () => {
+        mockRequest.params = { tenantId: "tenant-123" };
+        mockRequest.body = { userId: "user-123" };
+
+        await groupController.addUserToGroup(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockNext).toHaveBeenCalledWith(
+          expect.objectContaining({
+            statusCode: 400,
+            message: "Group ID is required",
+          })
+        );
+        expect(mockGroupService.addUserToGroup).not.toHaveBeenCalled();
+      });
+
+      it("should throw HttpError when userId is missing", async () => {
+        mockRequest.params = { tenantId: "tenant-123", groupId: "group-123" };
+        mockRequest.body = {};
+
+        await groupController.addUserToGroup(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockNext).toHaveBeenCalledWith(
+          expect.objectContaining({
+            statusCode: 400,
+            message: "User ID is required",
+          })
+        );
+        expect(mockGroupService.addUserToGroup).not.toHaveBeenCalled();
+      });
+
+      it("should call next with error when service throws error", async () => {
+        const error = new Error("Service error");
+        mockRequest.params = { tenantId: "tenant-123", groupId: "group-123" };
+        mockRequest.body = { userId: "user-123" };
+        mockGroupService.addUserToGroup.mockRejectedValue(error);
+
+        await groupController.addUserToGroup(
+          mockRequest as Request,
+          mockResponse as Response,
+          mockNext
+        );
+
+        expect(mockNext).toHaveBeenCalledWith(error);
+        expect(mockResponse.status).not.toHaveBeenCalled();
+      });
+    });
   });
 });

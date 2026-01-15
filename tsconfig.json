@@ -15,7 +15,8 @@
   "include": [
     "src/**/*.ts",
     "src/generated/**/*.ts",
-    "tests/middleware/middleware.test.ts"
+    "tests/middleware/middleware.test.ts",
+    "tests/domains/organization/repositories/groupMembership.repository.test.ts"
   ],
   "exclude": ["node_modules", "dist", "coverage"]
 }
