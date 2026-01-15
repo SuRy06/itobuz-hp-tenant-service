@@ -59,3 +59,8 @@ export enum TenantMembershipStatusEnum {
   "SUSPENDED" = "SUSPENDED",
   "EXPIRED" = "EXPIRED",
 }
+
+export enum GroupStatusEnum {
+  ACTIVE = "ACTIVE",
+  ARCHIVED = "ARCHIVED",
+}

@@ -8,11 +8,14 @@ import { addUserToTenantSchema } from "../validation/tenant-add-user.validation"
 import { getUserPermissionsSchema } from "../validation/tenant-user-permissions.validation";
 import { RoleController } from "../../role/controllers/role.controller";
 import { TenantMembershipController } from "../../membership/controllers/tenant-membership.controller";
+import { GroupController } from "../controllers/group.controller";
+import { createGroupSchema } from "../validation/group.validation";
 
 const router = Router();
 const tenantController = container.resolve(TenantController);
 const roleController = container.resolve(RoleController);
 const tenantMembershipController = container.resolve(TenantMembershipController);
+const groupController = container.resolve(GroupController);
 
 /**
  * @openapi
@@ -615,5 +618,134 @@ router.delete(
 );
 router.post("/:tenantId/users/:userId/suspend", tenantMembershipController.suspendTenantMember);
 router.post("/:tenantId/users/:userId/unsuspend", tenantMembershipController.unsuspendTenantMember);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/groups:
+ *   post:
+ *     tags:
+ *       - Groups
+ *     summary: Create a group
+ *     description: |
+ *       Groups represent business structure within a tenant. This endpoint creates tenant-scoped groups optionally under a parent group.
+ *
+ *       **Requirements:**
+ *       - Requires GROUP_CREATE permission
+ *       - Group name must be unique under same parent within tenant
+ *       - Tenant isolation enforced
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Tenant ID
+ *         example: tenant_uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: Group name (unique under same parent within tenant)
+ *                 example: Engineering
+ *               parentGroupId:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: Optional parent group ID for hierarchical structure
+ *                 example: null
+ *     responses:
+ *       201:
+ *         description: Group created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 groupId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: Unique group identifier
+ *                   example: group_uuid
+ *                 tenantId:
+ *                   type: string
+ *                   format: uuid
+ *                   description: Tenant identifier
+ *                   example: tenant_uuid
+ *                 name:
+ *                   type: string
+ *                   description: Group name
+ *                   example: Engineering
+ *                 parentGroupId:
+ *                   type: string
+ *                   format: uuid
+ *                   nullable: true
+ *                   description: Parent group ID if nested
+ *                   example: null
+ *                 status:
+ *                   type: string
+ *                   enum: [ACTIVE, ARCHIVED]
+ *                   description: Group status
+ *                   example: ACTIVE
+ *                 createdAt:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp when the group was created
+ *                   example: 2025-12-18T10:20:00Z
+ *       400:
+ *         description: Bad request - Invalid input or parent group archived
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tenant must be ACTIVE to create groups
+ *       404:
+ *         description: Tenant or parent group not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Tenant not found
+ *       409:
+ *         description: Conflict - Group name already exists under same parent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Group with this name already exists under the same parent
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: An unexpected error occurred
+ */
+router.post(
+  "/:tenantId/groups",
+  validateRequest(createGroupSchema),
+  groupController.createGroup
+);
 
 export = router;
