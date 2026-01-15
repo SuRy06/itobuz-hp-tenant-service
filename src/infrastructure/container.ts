@@ -9,6 +9,9 @@ import { TenantController } from "../domains/organization/controllers/tenant.con
 import { TenantService } from "../domains/organization/services/tenant.service";
 import { TenantRepository } from "../domains/organization/repositories/tenant.repository";
 import { TenantMembershipRepository } from "../domains/organization/repositories/tenantMembership.repository";
+import { PermissionController } from "../domains/permission/controllers/permission.controller";
+import { RoleController } from "../domains/role/controllers/role.controller";
+import { TenantMembershipController } from "../domains/membership/controllers/tenant-membership.controller";
 
 // Register services
 container.registerSingleton(ApiService);
@@ -25,4 +28,7 @@ container.registerSingleton(TenantMembershipRepository);
 container.registerSingleton(TenantService);
 container.registerSingleton(TenantController);
 
+container.registerSingleton(PermissionController);
+container.registerSingleton(RoleController);
+container.registerSingleton(TenantMembershipController);
 export { container };

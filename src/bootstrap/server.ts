@@ -3,20 +3,14 @@ import LOG from "../library/logging";
 import healthRoutes from "../infrastructure/health/routes/health";
 import organizationRoutes from "../domains/organization/routes/organization.route";
 import tenantRoutes from "../domains/organization/routes/tenant.route";
+import permissionRoutes from "../domains/permission/routes/permission.routes";
 // docs
 import docsRouter from "../docs/swaggerRouter";
-import {
-  notFoundMiddleware,
-  globalErrorMiddleware,
-} from "../infrastructure/middleware/error.middleware";
+import { notFoundMiddleware, globalErrorMiddleware } from "../infrastructure/middleware/error.middleware";
 
 const createServer = () => {
   const app = express();
-  const skipLogPaths = new Set<string>([
-    "/readiness",
-    "/health",
-    "/health/readiness",
-  ]);
+  const skipLogPaths = new Set<string>(["/readiness", "/health", "/health/readiness"]);
 
   app.use((req, res, next) => {
     const skip = skipLogPaths.has(req.url);
@@ -54,10 +48,7 @@ const createServer = () => {
     );
 
     if (req.method == "OPTIONS") {
-      res.header(
-        "Access-Control-Allow-Methods",
-        "PUT, POST, PATCH, DELETE, GET"
-      );
+      res.header("Access-Control-Allow-Methods", "PUT, POST, PATCH, DELETE, GET");
       res.status(200).json({});
       return;
     }
@@ -69,6 +60,8 @@ const createServer = () => {
   app.use("/health", healthRoutes);
   app.use("/v1/orgs", organizationRoutes);
   app.use("/v1/tenants", tenantRoutes);
+
+  app.use("/v1/permissions", permissionRoutes);
 
   /** Error handling */
   app.use(notFoundMiddleware);
