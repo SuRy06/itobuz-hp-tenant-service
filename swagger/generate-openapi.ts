@@ -25,12 +25,18 @@ async function generateAndWriteOpenApi() {
     LOG.info(`✓ OpenAPI spec written to ${outputPath}`);
     LOG.info(`  Spec title: ${spec.info?.title}`);
     LOG.info(`  Spec version: ${spec.info?.version}`);
-    LOG.info(`  Total endpoints documented: ${Object.keys(spec.paths || {}).length}`);
-    LOG.info(`  Endpoints tagged: ${spec.tags?.map((t: any) => t.name).join(", ") || "none"}`);
+    LOG.info(
+      `  Total endpoints documented: ${Object.keys(spec.paths || {}).length}`
+    );
+    LOG.info(
+      `  Endpoints tagged: ${spec.tags?.map((t: any) => t.name).join(", ") || "none"}`
+    );
 
     const endpoints = Object.keys(spec.paths || {});
     if (endpoints.length === 0) {
-      LOG.info("⚠️  No endpoints found. Ensure @openapi JSDoc blocks exist in route files.");
+      LOG.info(
+        "⚠️  No endpoints found. Ensure @openapi JSDoc blocks exist in route files."
+      );
     } else {
       LOG.info(`  Endpoints (${endpoints.length}):`);
       endpoints.forEach((ep) => LOG.info(`    - ${ep}`));

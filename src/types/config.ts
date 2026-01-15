@@ -64,3 +64,8 @@ export enum GroupStatusEnum {
   ACTIVE = "ACTIVE",
   ARCHIVED = "ARCHIVED",
 }
+
+export enum GroupMembershipStatusEnum {
+  ACTIVE = "ACTIVE",
+  ARCHIVED = "ARCHIVED",
+}
