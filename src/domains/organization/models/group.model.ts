@@ -37,8 +37,6 @@ export const GroupSchema = new Schema<GroupInterface>(
   }
 );
 
-export function getGroupModel(
-  connection: mongoose.Connection
-): Model<GroupInterface> {
+export function getGroupModel(connection: mongoose.Connection): Model<GroupInterface> {
   return connection.model<GroupInterface>("Group", GroupSchema);
 }

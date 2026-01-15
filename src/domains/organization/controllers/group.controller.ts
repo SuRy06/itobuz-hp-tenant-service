@@ -7,11 +7,7 @@ import { HttpError } from "../../common/errors/http.error";
 export class GroupController {
   constructor(private readonly groupService: GroupService) {}
 
-  createGroup = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  createGroup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { tenantId } = req.params;
       const { name, parentGroupId } = req.body;

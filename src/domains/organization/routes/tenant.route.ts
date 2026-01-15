@@ -8,14 +8,14 @@ import { addUserToTenantSchema } from "../validation/tenant-add-user.validation"
 import { getUserPermissionsSchema } from "../validation/tenant-user-permissions.validation";
 import { RoleController } from "../../role/controllers/role.controller";
 import { TenantMembershipController } from "../../membership/controllers/tenant-membership.controller";
-import { GroupController } from "../controllers/group.controller";
 import { createGroupSchema } from "../validation/group.validation";
+import { GroupController } from "../controllers/group.controller";
 
 const router = Router();
+const groupController = container.resolve(GroupController);
 const tenantController = container.resolve(TenantController);
 const roleController = container.resolve(RoleController);
 const tenantMembershipController = container.resolve(TenantMembershipController);
-const groupController = container.resolve(GroupController);
 
 /**
  * @openapi
@@ -742,10 +742,5 @@ router.post("/:tenantId/users/:userId/unsuspend", tenantMembershipController.uns
  *                   type: string
  *                   example: An unexpected error occurred
  */
-router.post(
-  "/:tenantId/groups",
-  validateRequest(createGroupSchema),
-  groupController.createGroup
-);
-
+router.post("/:tenantId/groups", validateRequest(createGroupSchema), groupController.createGroup);
 export = router;
