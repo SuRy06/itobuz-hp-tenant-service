@@ -44,16 +44,10 @@ export class GroupService {
 
       // If parentGroupId is provided, validate it exists and belongs to same tenant
       if (data.parentGroupId) {
-        const parentGroup = await this.groupRepository.findByIdAndTenant(
-          data.parentGroupId,
-          data.tenantId
-        );
+        const parentGroup = await this.groupRepository.findByIdAndTenant(data.parentGroupId, data.tenantId);
 
         if (!parentGroup) {
-          throw new HttpError(
-            404,
-            "Parent group not found or does not belong to this tenant"
-          );
+          throw new HttpError(404, "Parent group not found or does not belong to this tenant");
         }
 
         if (parentGroup.status === GroupStatusEnum.ARCHIVED) {
@@ -69,10 +63,7 @@ export class GroupService {
       );
 
       if (existingGroup) {
-        throw new HttpError(
-          409,
-          "Group with this name already exists under the same parent"
-        );
+        throw new HttpError(409, "Group with this name already exists under the same parent");
       }
 
       // Generate unique groupId

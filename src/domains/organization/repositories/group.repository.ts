@@ -18,10 +18,7 @@ export class GroupRepository {
     return await Group.findOne({ groupId }).exec();
   }
 
-  async findByIdAndTenant(
-    groupId: string,
-    tenantId: string
-  ): Promise<GroupInterface | null> {
+  async findByIdAndTenant(groupId: string, tenantId: string): Promise<GroupInterface | null> {
     const Group = getGroupModel(this.mongoManager.getConnection());
     return await Group.findOne({ groupId, tenantId }).exec();
   }
@@ -31,10 +28,7 @@ export class GroupRepository {
     return await Group.find({ tenantId }).exec();
   }
 
-  async findByTenantAndParent(
-    tenantId: string,
-    parentGroupId: string | null
-  ): Promise<GroupInterface[]> {
+  async findByTenantAndParent(tenantId: string, parentGroupId: string | null): Promise<GroupInterface[]> {
     const Group = getGroupModel(this.mongoManager.getConnection());
     return await Group.find({ tenantId, parentGroupId }).exec();
   }

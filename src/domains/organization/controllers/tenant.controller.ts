@@ -125,4 +125,31 @@ export class TenantController {
       next(error);
     }
   };
+
+  getUserPermissions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { tenantId, userId } = req.params;
+
+      if (!tenantId) {
+        throw new HttpError(400, "Tenant ID is required");
+      }
+
+      if (!userId) {
+        throw new HttpError(400, "User ID is required");
+      }
+
+      const result = await this.tenantService.getUserPermissions(
+        tenantId,
+        userId
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
