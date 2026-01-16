@@ -10,6 +10,7 @@ import { RoleController } from "../../role/controllers/role.controller";
 import { TenantMembershipController } from "../../membership/controllers/tenant-membership.controller";
 import { createGroupSchema } from "../validation/group.validation";
 import { GroupController } from "../controllers/group.controller";
+import { addUserToGroupSchema } from "../validation/group-add-user.validation";
 
 const router = Router();
 const groupController = container.resolve(GroupController);
@@ -783,11 +784,11 @@ router.post(
  *     tags:
  *       - Groups
  *     summary: Add user to group
- *     description: |
+ *     description: >
  *       Assign users to groups for business organization and credential-sharing scopes (if applicable).
  *       Requires user is already a tenant member.
  *
- *       **Requirements:**
+ *       Requirements:
  *       - Requires GROUP_USER_ADD permission
  *       - User must be an ACTIVE tenant member
  *       - Group must be ACTIVE
