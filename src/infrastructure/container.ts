@@ -12,9 +12,9 @@ import { TenantMembershipRepository } from "../domains/organization/repositories
 import { PermissionController } from "../domains/permission/controllers/permission.controller";
 import { RoleController } from "../domains/role/controllers/role.controller";
 import { TenantMembershipController } from "../domains/membership/controllers/tenant-membership.controller";
-import { GroupController } from "src/domains/organization/controllers/group.controller";
-import { GroupRepository } from "src/domains/organization/repositories/group.repository";
-import { GroupService } from "src/domains/organization/services/group.service";
+import { GroupController } from "../domains/organization/controllers/group.controller";
+import { GroupRepository } from "../domains/organization/repositories/group.repository";
+import { GroupService } from "../domains/organization/services/group.service";
 
 // Register services
 container.registerSingleton(ApiService);
