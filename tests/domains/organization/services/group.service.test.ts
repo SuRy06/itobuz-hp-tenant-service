@@ -400,4 +400,141 @@ describe("GroupService", () => {
       expect(mockGroupMembershipRepository.create).not.toHaveBeenCalled();
     });
   });
+
+  describe("removeUserFromGroup", () => {
+    let mockGroupMembershipRepository: any;
+
+    const mockTenant = {
+      tenantId: "tenant-123",
+      orgId: "org-123",
+      name: "Test Tenant",
+      status: TenantStatusEnum.ACTIVE,
+      createdAt: new Date("2024-01-01"),
+      updatedAt: new Date("2024-01-01"),
+    } as any;
+
+    const mockGroup = {
+      groupId: "group-123",
+      tenantId: "tenant-123",
+      name: "Engineering",
+      status: GroupStatusEnum.ACTIVE,
+      createdAt: new Date("2024-01-01"),
+    } as any;
+
+    beforeEach(() => {
+      mockGroupMembershipRepository = (groupService as any).groupMembershipRepository;
+      mockGroupMembershipRepository.deleteByGroupAndUser = jest.fn();
+    });
+
+    it("should successfully remove user from group", async () => {
+      // Arrange
+      mockGroupRepository.findByIdAndTenant.mockResolvedValue(mockGroup);
+      mockTenantRepository.findById.mockResolvedValue(mockTenant);
+      mockGroupMembershipRepository.deleteByGroupAndUser.mockResolvedValue(undefined);
+
+      // Act
+      const result = await groupService.removeUserFromGroup("tenant-123", "group-123", "user-123");
+
+      // Assert
+      expect(mockGroupRepository.findByIdAndTenant).toHaveBeenCalledWith("group-123", "tenant-123");
+      expect(mockTenantRepository.findById).toHaveBeenCalledWith("tenant-123");
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).toHaveBeenCalledWith("group-123", "user-123");
+      expect(result).toEqual({
+        tenantId: "tenant-123",
+        groupId: "group-123",
+        userId: "user-123",
+        deleted: true,
+      });
+    });
+
+    it("should throw 404 error when group does not exist", async () => {
+      // Arrange
+      mockGroupRepository.findByIdAndTenant.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(groupService.removeUserFromGroup("tenant-123", "group-nonexistent", "user-123")).rejects.toThrow(
+        new HttpError(404, "Group not found or does not belong to this tenant")
+      );
+
+      expect(mockGroupRepository.findByIdAndTenant).toHaveBeenCalledWith("group-nonexistent", "tenant-123");
+      expect(mockTenantRepository.findById).not.toHaveBeenCalled();
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).not.toHaveBeenCalled();
+    });
+
+    it("should throw 404 error when group does not belong to tenant", async () => {
+      // Arrange
+      mockGroupRepository.findByIdAndTenant.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(groupService.removeUserFromGroup("tenant-123", "group-456", "user-123")).rejects.toThrow(
+        new HttpError(404, "Group not found or does not belong to this tenant")
+      );
+
+      expect(mockGroupRepository.findByIdAndTenant).toHaveBeenCalledWith("group-456", "tenant-123");
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).not.toHaveBeenCalled();
+    });
+
+    it("should throw 404 error when tenant does not exist", async () => {
+      // Arrange
+      mockGroupRepository.findByIdAndTenant.mockResolvedValue(mockGroup);
+      mockTenantRepository.findById.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(groupService.removeUserFromGroup("tenant-nonexistent", "group-123", "user-123")).rejects.toThrow(
+        new HttpError(404, "Tenant not found")
+      );
+
+      expect(mockGroupRepository.findByIdAndTenant).toHaveBeenCalledWith("group-123", "tenant-nonexistent");
+      expect(mockTenantRepository.findById).toHaveBeenCalledWith("tenant-nonexistent");
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).not.toHaveBeenCalled();
+    });
+
+    it("should be idempotent and return deleted: true even if membership does not exist", async () => {
+      // Arrange
+      mockGroupRepository.findByIdAndTenant.mockResolvedValue(mockGroup);
+      mockTenantRepository.findById.mockResolvedValue(mockTenant);
+      mockGroupMembershipRepository.deleteByGroupAndUser.mockResolvedValue(undefined);
+
+      // Act
+      const result = await groupService.removeUserFromGroup("tenant-123", "group-123", "user-nonexistent");
+
+      // Assert
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).toHaveBeenCalledWith("group-123", "user-nonexistent");
+      expect(result).toEqual({
+        tenantId: "tenant-123",
+        groupId: "group-123",
+        userId: "user-nonexistent",
+        deleted: true,
+      });
+    });
+
+    it("should handle repository errors gracefully", async () => {
+      // Arrange
+      const repositoryError = new Error("Database connection failed");
+      mockGroupRepository.findByIdAndTenant.mockRejectedValue(repositoryError);
+
+      // Act & Assert
+      await expect(groupService.removeUserFromGroup("tenant-123", "group-123", "user-123")).rejects.toThrow(
+        repositoryError
+      );
+
+      expect(mockGroupRepository.findByIdAndTenant).toHaveBeenCalledWith("group-123", "tenant-123");
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).not.toHaveBeenCalled();
+    });
+
+    it("should handle deletion errors", async () => {
+      // Arrange
+      mockGroupRepository.findByIdAndTenant.mockResolvedValue(mockGroup);
+      mockTenantRepository.findById.mockResolvedValue(mockTenant);
+      const deletionError = new Error("Failed to delete membership");
+      mockGroupMembershipRepository.deleteByGroupAndUser.mockRejectedValue(deletionError);
+
+      // Act & Assert
+      await expect(groupService.removeUserFromGroup("tenant-123", "group-123", "user-123")).rejects.toThrow(
+        deletionError
+      );
+
+      expect(mockGroupMembershipRepository.deleteByGroupAndUser).toHaveBeenCalledWith("group-123", "user-123");
+    });
+  });
 });

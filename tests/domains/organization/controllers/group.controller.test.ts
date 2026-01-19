@@ -269,4 +269,110 @@ describe("GroupController", () => {
       expect(mockResponse.status).not.toHaveBeenCalled();
     });
   });
+
+  describe("removeUserFromGroup", () => {
+    beforeEach(() => {
+      mockGroupService.removeUserFromGroup = jest.fn();
+    });
+
+    it("should remove user from group successfully", async () => {
+      const mockResult = {
+        tenantId: "tenant-123",
+        groupId: "group-123",
+        userId: "user-123",
+        deleted: true,
+      };
+
+      mockRequest.params = {
+        tenantId: "tenant-123",
+        groupId: "group-123",
+        userId: "user-123",
+      };
+      mockGroupService.removeUserFromGroup.mockResolvedValue(mockResult);
+
+      await groupController.removeUserFromGroup(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockGroupService.removeUserFromGroup).toHaveBeenCalledWith("tenant-123", "group-123", "user-123");
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(mockResult);
+      expect(mockNext).not.toHaveBeenCalled();
+    });
+
+    it("should throw HttpError when tenantId is missing", async () => {
+      mockRequest.params = { groupId: "group-123", userId: "user-123" };
+
+      await groupController.removeUserFromGroup(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: "Tenant ID is required",
+        })
+      );
+      expect(mockGroupService.removeUserFromGroup).not.toHaveBeenCalled();
+    });
+
+    it("should throw HttpError when groupId is missing", async () => {
+      mockRequest.params = { tenantId: "tenant-123", userId: "user-123" };
+
+      await groupController.removeUserFromGroup(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: "Group ID is required",
+        })
+      );
+      expect(mockGroupService.removeUserFromGroup).not.toHaveBeenCalled();
+    });
+
+    it("should throw HttpError when userId is missing", async () => {
+      mockRequest.params = { tenantId: "tenant-123", groupId: "group-123" };
+
+      await groupController.removeUserFromGroup(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: "User ID is required",
+        })
+      );
+      expect(mockGroupService.removeUserFromGroup).not.toHaveBeenCalled();
+    });
+
+    it("should call next with error when service throws error", async () => {
+      const error = new Error("Service error");
+      mockRequest.params = {
+        tenantId: "tenant-123",
+        groupId: "group-123",
+        userId: "user-123",
+      };
+      mockGroupService.removeUserFromGroup.mockRejectedValue(error);
+
+      await groupController.removeUserFromGroup(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(error);
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+
+    it("should handle HttpError from service", async () => {
+      const error = new HttpError(404, "User not found in group");
+      mockRequest.params = {
+        tenantId: "tenant-123",
+        groupId: "group-123",
+        userId: "user-123",
+      };
+      mockGroupService.removeUserFromGroup.mockRejectedValue(error);
+
+      await groupController.removeUserFromGroup(mockRequest as Request, mockResponse as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 404,
+          message: "User not found in group",
+        })
+      );
+      expect(mockResponse.status).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -72,4 +72,59 @@ describe("GroupMembershipRepository", () => {
     expect(result).toBeNull();
     expect(findOneMock).toHaveBeenCalledWith({ groupId, userId });
   });
+
+  test("deleteByGroupAndUser - returns true when document is deleted", async () => {
+    const groupId = "g3";
+    const userId = "u3";
+    const deleteResult = { deletedCount: 1 };
+
+    const execMock = jest.fn().mockResolvedValue(deleteResult);
+    const deleteOneMock = jest.fn().mockReturnValue({ exec: execMock });
+
+    mockedGetModel.mockReturnValue({ deleteOne: deleteOneMock });
+
+    const repo = new GroupMembershipRepository(fakeMongoManager);
+    const result = await repo.deleteByGroupAndUser(groupId, userId);
+
+    expect(mockedGetModel).toHaveBeenCalled();
+    expect(deleteOneMock).toHaveBeenCalledWith({ groupId, userId });
+    expect(execMock).toHaveBeenCalled();
+    expect(result).toBe(true);
+  });
+
+  test("deleteByGroupAndUser - returns false when no document is deleted", async () => {
+    const groupId = "g4";
+    const userId = "u4";
+    const deleteResult = { deletedCount: 0 };
+
+    const execMock = jest.fn().mockResolvedValue(deleteResult);
+    const deleteOneMock = jest.fn().mockReturnValue({ exec: execMock });
+
+    mockedGetModel.mockReturnValue({ deleteOne: deleteOneMock });
+
+    const repo = new GroupMembershipRepository(fakeMongoManager);
+    const result = await repo.deleteByGroupAndUser(groupId, userId);
+
+    expect(deleteOneMock).toHaveBeenCalledWith({ groupId, userId });
+    expect(execMock).toHaveBeenCalled();
+    expect(result).toBe(false);
+  });
+
+  test("deleteByGroupAndUser - handles database errors gracefully", async () => {
+    const groupId = "g5";
+    const userId = "u5";
+    const dbError = new Error("Database connection failed");
+
+    const execMock = jest.fn().mockRejectedValue(dbError);
+    const deleteOneMock = jest.fn().mockReturnValue({ exec: execMock });
+
+    mockedGetModel.mockReturnValue({ deleteOne: deleteOneMock });
+
+    const repo = new GroupMembershipRepository(fakeMongoManager);
+
+    await expect(repo.deleteByGroupAndUser(groupId, userId)).rejects.toThrow(dbError);
+
+    expect(deleteOneMock).toHaveBeenCalledWith({ groupId, userId });
+    expect(execMock).toHaveBeenCalled();
+  });
 });
