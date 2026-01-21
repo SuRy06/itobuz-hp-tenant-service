@@ -24,6 +24,10 @@ export const TenantSchema = new Schema<TenantInterface>(
       required: true,
       default: TenantStatusEnum.ACTIVE,
     },
+    tenantPermissionVersion: {
+      type: Number,
+      default: 1,
+    },
   },
   {
     timestamps: {
@@ -33,8 +37,6 @@ export const TenantSchema = new Schema<TenantInterface>(
   }
 );
 
-export function getTenantModel(
-  connection: mongoose.Connection
-): Model<TenantInterface> {
+export function getTenantModel(connection: mongoose.Connection): Model<TenantInterface> {
   return connection.model<TenantInterface>("Tenant", TenantSchema);
 }

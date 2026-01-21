@@ -56,4 +56,13 @@ export class PermissionController {
       next(error);
     }
   };
+
+  public getPermissionRegistry = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const registry = await this.permissionService.getPermissionRegistry();
+      res.status(200).json(registry);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

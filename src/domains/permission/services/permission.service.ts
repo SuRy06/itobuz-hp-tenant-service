@@ -1,9 +1,27 @@
+import { promises as fs } from "fs";
+import path from "path";
 import { injectable } from "tsyringe";
 import { permissionInterface, PermissionRepository } from "../repositories/permission.repository";
 import { HttpError } from "../../common/errors/http.error";
 
+interface PermissionRegistryEntry {
+  permission_id: string;
+  code: string;
+  domain: string;
+  description: string;
+}
+
+interface PermissionRegistryResponse {
+  version: string;
+  permissions: PermissionRegistryEntry[];
+}
+
+const permissionRegistryPath = path.join(__dirname, "..", "permissions.json");
+
 @injectable()
 export class PermissionService {
+  private permissionRegistryCache?: PermissionRegistryResponse;
+
   constructor(private readonly permissionRepository: PermissionRepository) {}
   public async listPermission(
     status?: "ACTIVE" | "DEPRECATED",
@@ -79,5 +97,26 @@ export class PermissionService {
       status: updated.status,
       updatedAt: updated.updatedAt,
     };
+  }
+
+  public async getPermissionRegistry(): Promise<PermissionRegistryResponse> {
+    if (this.permissionRegistryCache) {
+      return this.permissionRegistryCache;
+    }
+
+    try {
+      const raw = await fs.readFile(permissionRegistryPath, "utf-8");
+      const parsed = JSON.parse(raw) as PermissionRegistryResponse;
+
+      if (!parsed || !Array.isArray(parsed.permissions)) {
+        throw new Error("Invalid permission registry payload");
+      }
+
+      this.permissionRegistryCache = parsed;
+
+      return parsed;
+    } catch (error) {
+      throw new HttpError(500, "Failed to load permission registry");
+    }
   }
 }

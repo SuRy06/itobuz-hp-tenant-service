@@ -7,6 +7,41 @@ const permissionController = container.resolve(PermissionController);
 
 /**
  * @openapi
+ * /v1/permissions/registry:
+ *   get:
+ *     tags:
+ *       - Permissions
+ *     summary: Fetch the static permission registry
+ *     description: Returns the curated list of permissions bundled with the service.
+ *     responses:
+ *       200:
+ *         description: Permission registry payload
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 version:
+ *                   type: string
+ *                   example: "1.0.0"
+ *                 permissions:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       permission_id:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       domain:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ */
+router.get("/registry", permissionController.getPermissionRegistry);
+
+/**
+ * @openapi
  * /v1/permissions:
  *   get:
  *     tags:

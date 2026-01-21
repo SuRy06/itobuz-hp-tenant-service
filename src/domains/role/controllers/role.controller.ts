@@ -65,4 +65,20 @@ export class RoleController {
       next(error);
     }
   };
+
+  public removePermissionFromRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { tenantId, roleId, permissionId } = req.params;
+
+      if (!tenantId || !roleId || !permissionId) {
+        throw new HttpError(400, "tenantId, roleId, and permissionId are required");
+      }
+
+      const result = await this.roleService.removePermissionFromRole(tenantId, roleId, permissionId);
+
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

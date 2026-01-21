@@ -5,6 +5,7 @@ export interface TenantInterface {
   orgId: string;
   name: string;
   status: TenantStatusEnum;
+  tenantPermissionVersion?: number;
   deactivatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;

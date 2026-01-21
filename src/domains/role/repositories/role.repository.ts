@@ -24,6 +24,13 @@ export class RoleRepository {
     return RoleModel.findOne({ tenantId, name }).lean<roleDB>();
   }
 
+  public async findByRoleId(tenantId: string, roleId: string): Promise<roleDB | null> {
+    const connection = this.mongoDBConnectionManager.getConnection();
+    const RoleModel = getRolesModel(connection);
+
+    return RoleModel.findOne({ tenantId, roleId }).lean<roleDB>();
+  }
+
   async create(data: { roleId: string; tenantId: string; name: string; roleVersion: number }): Promise<roleDB> {
     const connection = this.mongoDBConnectionManager.getConnection();
     const RoleModel = getRolesModel(connection);
@@ -126,5 +133,25 @@ export class RoleRepository {
     })
       .select({ roleId: 1 })
       .lean();
+  }
+
+  public async removePermission(tenantId: string, roleId: string, permissionId: string): Promise<roleDB | null> {
+    const connection = this.mongoDBConnectionManager.getConnection();
+    const RoleModel = getRolesModel(connection);
+
+    return RoleModel.findOneAndUpdate(
+      {
+        roleId: roleId,
+        tenantId: tenantId,
+        permissions: permissionId, // Ensure permission exists in the role
+      },
+      {
+        $pull: { permissions: permissionId },
+        $inc: { roleVersion: 1 },
+      },
+      {
+        new: true,
+      }
+    ).lean<roleDB>();
   }
 }

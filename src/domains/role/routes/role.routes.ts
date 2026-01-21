@@ -47,6 +47,60 @@ router.post("/:tenantId/roles", roleController.createRole);
 
 router.patch("/:tenantId/roles/:roleId/permissions", roleController.updateRolePermissions);
 
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/roles/{roleId}/permissions/{permissionId}:
+ *   delete:
+ *     tags:
+ *       - Roles
+ *     summary: Remove a permission from a role
+ *     description: >
+ *       Removes a specific permission from a role.
+ *       Increments tenant_permission_version to invalidate user permission caches.
+ *       Affected users lose the permission after cache refresh.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: roleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: permissionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Permission removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 roleId:
+ *                   type: string
+ *                 tenantId:
+ *                   type: string
+ *                 roleVersion:
+ *                   type: number
+ *                 tenantPermissionVersion:
+ *                   type: number
+ *                 removedPermission:
+ *                   type: string
+ *       404:
+ *         description: Role not found or permission not in role
+ *       403:
+ *         description: Forbidden
+ */
+router.delete("/:tenantId/roles/:roleId/permissions/:permissionId", roleController.removePermissionFromRole);
+
 router.get("/:tenantId/roles", roleController.listRole);
 
 export default router;

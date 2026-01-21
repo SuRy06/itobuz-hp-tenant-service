@@ -130,6 +130,56 @@ describe("TenantRepository", () => {
 
         expect(result).toBeNull();
       });
+
+      describe("incrementPermissionVersion", () => {
+        it("should increment tenant permission version", async () => {
+          const mockTenantId = "test-123";
+          const mockUpdatedTenant = {
+            tenantId: mockTenantId,
+            tenantPermissionVersion: 2,
+          };
+          const mockExec = jest.fn().mockResolvedValue(mockUpdatedTenant);
+          const mockFindOneAndUpdate = jest
+            .fn()
+            .mockReturnValue({ exec: mockExec });
+          const mockTenantModel = { findOneAndUpdate: mockFindOneAndUpdate };
+          const mockConnection = {};
+
+          mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
+          (getTenantModel as jest.Mock).mockReturnValue(mockTenantModel);
+
+          const result = await tenantRepository.incrementPermissionVersion(
+            mockTenantId
+          );
+
+          expect(getTenantModel).toHaveBeenCalledWith(mockConnection);
+          expect(mockFindOneAndUpdate).toHaveBeenCalledWith(
+            { tenantId: mockTenantId },
+            { $inc: { tenantPermissionVersion: 1 } },
+            { new: true }
+          );
+          expect(mockExec).toHaveBeenCalled();
+          expect(result).toEqual(mockUpdatedTenant);
+        });
+
+        it("should return null when tenant not found", async () => {
+          const mockExec = jest.fn().mockResolvedValue(null);
+          const mockFindOneAndUpdate = jest
+            .fn()
+            .mockReturnValue({ exec: mockExec });
+          const mockTenantModel = { findOneAndUpdate: mockFindOneAndUpdate };
+          const mockConnection = {};
+
+          mockMongoManager.getConnection.mockReturnValue(mockConnection as any);
+          (getTenantModel as jest.Mock).mockReturnValue(mockTenantModel);
+
+          const result = await tenantRepository.incrementPermissionVersion(
+            "non-existent"
+          );
+
+          expect(result).toBeNull();
+        });
+      });
     });
   });
 });

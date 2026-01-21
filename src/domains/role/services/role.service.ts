@@ -2,12 +2,16 @@ import { injectable } from "tsyringe";
 import { HttpError } from "../../common/errors/http.error";
 import { roleDB, RoleRepository } from "../repositories/role.repository";
 import { PermissionRepository } from "../../permission/repositories/permission.repository";
+import { TenantRepository } from "../../organization/repositories/tenant.repository";
+import { RolePermissionRepository } from "../repositories/role-permission.repository";
 
 @injectable()
 export class RoleService {
   constructor(
     private readonly roleRepository: RoleRepository,
-    private readonly permissionRepository: PermissionRepository
+    private readonly permissionRepository: PermissionRepository,
+    private readonly tenantRepository: TenantRepository,
+    private readonly rolePermissionRepository: RolePermissionRepository
   ) {}
 
   public async createRole(name: string, tenantId: string): Promise<any> {
@@ -81,7 +85,7 @@ export class RoleService {
     const nextCursor = hasNext ? Buffer.from(String(data[data.length - 1]._id)).toString("base64") : null;
 
     return {
-      data: roles.map((role: roleDB) => ({
+      data: data.map((role: roleDB) => ({
         roleId: role.roleId,
         name: role.name,
         status: role.status,
@@ -91,6 +95,52 @@ export class RoleService {
         limit,
         nextCursor,
       },
+    };
+  }
+
+  public async removePermissionFromRole(tenantId: string, roleId: string, permissionId: string): Promise<any> {
+    // Verify permission exists
+    const permission = await this.permissionRepository.findByPermissionId(permissionId);
+    if (!permission) {
+      throw new HttpError(404, "Permission not found");
+    }
+
+    // Verify role exists
+    const role = await this.roleRepository.findByRoleId(tenantId, roleId);
+    if (!role) {
+      throw new HttpError(404, "Role not found");
+    }
+
+    // Check if role-permission mapping exists
+    const rolePermission = await this.rolePermissionRepository.findByTenantRoleAndPermission(
+      tenantId,
+      roleId,
+      permissionId
+    );
+
+    if (!rolePermission) {
+      throw new HttpError(404, "Permission not assigned to this role");
+    }
+
+    // Remove permission from role
+    await this.rolePermissionRepository.removePermission(tenantId, roleId, permissionId);
+
+    // Increment role version
+    const updatedRole = await this.roleRepository.updatePermissionsAtomic(tenantId, roleId, [], []);
+
+    if (!updatedRole) {
+      throw new HttpError(404, "Role not found");
+    }
+
+    // Increment tenant permission version to invalidate user permission caches
+    const tenantVersionUpdate = await this.tenantRepository.incrementPermissionVersion(tenantId);
+
+    return {
+      roleId: updatedRole.roleId,
+      tenantId: updatedRole.tenantId,
+      roleVersion: updatedRole.roleVersion,
+      tenantPermissionVersion: tenantVersionUpdate?.tenantPermissionVersion || 1,
+      removedPermission: permissionId,
     };
   }
 }

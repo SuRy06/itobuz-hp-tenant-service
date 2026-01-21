@@ -16,6 +16,7 @@ describe("PermissionController", () => {
       listPermission: jest.fn(),
       createPermission: jest.fn(),
       deprecatePermission: jest.fn(),
+      getPermissionRegistry: jest.fn(),
     } as any;
 
     controller = new PermissionController(service);
@@ -126,6 +127,19 @@ describe("PermissionController", () => {
         permissionId: "1",
         status: "DEPRECATED",
       });
+    });
+  });
+
+  describe("getPermissionRegistry", () => {
+    it("should return registry payload", async () => {
+      const registry = { version: "1.0.0", permissions: [{ permission_id: "a", code: "CODE" }] } as any;
+      service.getPermissionRegistry.mockResolvedValue(registry);
+
+      await controller.getPermissionRegistry(req, res, next);
+
+      expect(service.getPermissionRegistry).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(registry);
     });
   });
 });

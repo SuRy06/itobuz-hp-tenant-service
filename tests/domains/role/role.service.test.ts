@@ -3,24 +3,40 @@ import { RoleService } from "../../../src/domains/role/services/role.service";
 import { RoleRepository } from "../../../src/domains/role/repositories/role.repository";
 import { HttpError } from "../../../src/domains/common/errors/http.error";
 import { PermissionRepository } from "../../../src/domains/permission/repositories/permission.repository";
+import { TenantRepository } from "../../../src/domains/organization/repositories/tenant.repository";
+import { RolePermissionRepository } from "../../../src/domains/role/repositories/role-permission.repository";
 
 describe("RoleService", () => {
   let service: RoleService;
   let repository: jest.Mocked<RoleRepository>;
   let permissionRepository: jest.Mocked<PermissionRepository>;
+  let tenantRepository: jest.Mocked<TenantRepository>;
+  let rolePermissionRepository: jest.Mocked<RolePermissionRepository>;
 
   beforeEach(() => {
     repository = {
       create: jest.fn(),
       updatePermissionsAtomic: jest.fn(),
       listByTenant: jest.fn(),
+      removePermission: jest.fn(),
+      findByRoleId: jest.fn(),
     } as any;
 
     permissionRepository = {
       findByIds: jest.fn(),
+      findByPermissionId: jest.fn(),
     } as any;
 
-    service = new RoleService(repository, permissionRepository);
+    tenantRepository = {
+      incrementPermissionVersion: jest.fn(),
+    } as any;
+
+    rolePermissionRepository = {
+      findByTenantRoleAndPermission: jest.fn(),
+      removePermission: jest.fn(),
+    } as any;
+
+    service = new RoleService(repository, permissionRepository, tenantRepository, rolePermissionRepository);
   });
 
   afterEach(() => {
@@ -214,6 +230,108 @@ describe("RoleService", () => {
       await service.listRoles("tenant-1", 10, encodedCursor);
 
       expect(repository.listByTenant).toHaveBeenCalledWith("tenant-1", 10, decodedCursor);
+    });
+  });
+
+  describe("removePermissionFromRole", () => {
+    it("should throw 404 if permission not found", async () => {
+      permissionRepository.findByPermissionId.mockResolvedValue(null);
+
+      await expect(service.removePermissionFromRole("t1", "r1", "p1")).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Permission not found",
+      });
+
+      expect(permissionRepository.findByPermissionId).toHaveBeenCalledWith("p1");
+      expect(repository.findByRoleId).not.toHaveBeenCalled();
+    });
+
+    it("should throw 404 if role not found", async () => {
+      permissionRepository.findByPermissionId.mockResolvedValue({ permissionId: "p1" } as any);
+      repository.findByRoleId.mockResolvedValue(null);
+
+      await expect(service.removePermissionFromRole("t1", "r1", "p1")).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Role not found",
+      });
+
+      expect(repository.findByRoleId).toHaveBeenCalledWith("t1", "r1");
+    });
+
+    it("should throw 404 if permission not assigned to role", async () => {
+      permissionRepository.findByPermissionId.mockResolvedValue({ permissionId: "p1" } as any);
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      rolePermissionRepository.findByTenantRoleAndPermission.mockResolvedValue(null);
+
+      await expect(service.removePermissionFromRole("t1", "r1", "p1")).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Permission not assigned to this role",
+      });
+
+      expect(rolePermissionRepository.findByTenantRoleAndPermission).toHaveBeenCalledWith("t1", "r1", "p1");
+    });
+
+    it("should remove permission from role and increment tenant version", async () => {
+      permissionRepository.findByPermissionId.mockResolvedValue({ permissionId: "p1" } as any);
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      rolePermissionRepository.findByTenantRoleAndPermission.mockResolvedValue({
+        tenantId: "t1",
+        roleId: "r1",
+        permissionId: "p1",
+        effect: "ALLOW",
+      } as any);
+
+      const updatedRole = {
+        roleId: "r1",
+        tenantId: "t1",
+        roleVersion: 3,
+        permissions: ["p2"],
+      } as any;
+
+      repository.updatePermissionsAtomic.mockResolvedValue(updatedRole);
+
+      const tenantUpdate = {
+        tenantId: "t1",
+        tenantPermissionVersion: 5,
+      } as any;
+
+      tenantRepository.incrementPermissionVersion.mockResolvedValue(tenantUpdate);
+
+      const result = await service.removePermissionFromRole("t1", "r1", "p1");
+
+      expect(permissionRepository.findByPermissionId).toHaveBeenCalledWith("p1");
+      expect(repository.findByRoleId).toHaveBeenCalledWith("t1", "r1");
+      expect(rolePermissionRepository.findByTenantRoleAndPermission).toHaveBeenCalledWith("t1", "r1", "p1");
+      expect(rolePermissionRepository.removePermission).toHaveBeenCalledWith("t1", "r1", "p1");
+      expect(repository.updatePermissionsAtomic).toHaveBeenCalledWith("t1", "r1", [], []);
+      expect(tenantRepository.incrementPermissionVersion).toHaveBeenCalledWith("t1");
+
+      expect(result).toEqual({
+        roleId: "r1",
+        tenantId: "t1",
+        roleVersion: 3,
+        tenantPermissionVersion: 5,
+        removedPermission: "p1",
+      });
+    });
+
+    it("should handle missing tenant version gracefully", async () => {
+      permissionRepository.findByPermissionId.mockResolvedValue({ permissionId: "p1" } as any);
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      rolePermissionRepository.findByTenantRoleAndPermission.mockResolvedValue({ permissionId: "p1" } as any);
+
+      const updatedRole = {
+        roleId: "r1",
+        tenantId: "t1",
+        roleVersion: 2,
+      } as any;
+
+      repository.updatePermissionsAtomic.mockResolvedValue(updatedRole);
+      tenantRepository.incrementPermissionVersion.mockResolvedValue(null);
+
+      const result = await service.removePermissionFromRole("t1", "r1", "p1");
+
+      expect(result.tenantPermissionVersion).toBe(1);
     });
   });
 });

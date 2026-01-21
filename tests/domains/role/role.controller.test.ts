@@ -16,6 +16,7 @@ describe("RoleController", () => {
       createRole: jest.fn(),
       updateRolePermissions: jest.fn(),
       listRoles: jest.fn(),
+      removePermissionFromRole: jest.fn(),
     } as any;
 
     controller = new RoleController(service);
@@ -184,6 +185,41 @@ describe("RoleController", () => {
       await controller.listRole(req, res, next);
 
       expect(service.listRoles).toHaveBeenCalledWith("tenant-1", 10, "encoded-cursor");
+    });
+  });
+
+  describe("removePermissionFromRole", () => {
+    it("should call next with error if parameters are missing", async () => {
+      req.params = { tenantId: "t1" }; // missing roleId and permissionId
+
+      await controller.removePermissionFromRole(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(HttpError));
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("should remove permission from role successfully", async () => {
+      req.params = {
+        tenantId: "t1",
+        roleId: "r1",
+        permissionId: "p1",
+      };
+
+      const result = {
+        roleId: "r1",
+        tenantId: "t1",
+        roleVersion: 3,
+        tenantPermissionVersion: 5,
+        removedPermission: "p1",
+      };
+
+      service.removePermissionFromRole.mockResolvedValue(result as any);
+
+      await controller.removePermissionFromRole(req, res, next);
+
+      expect(service.removePermissionFromRole).toHaveBeenCalledWith("t1", "r1", "p1");
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(result);
     });
   });
 });

@@ -1,11 +1,21 @@
 import "reflect-metadata";
+import { promises as fs } from "fs";
 import { PermissionService } from "../../../src/domains/permission/services/permission.service";
 import { PermissionRepository } from "../../../src/domains/permission/repositories/permission.repository";
 import { HttpError } from "../../../src/domains/common/errors/http.error";
 
+jest.mock("fs", () => ({
+  // Preserve real fs sync APIs (dotenv-safe uses readFileSync) and only mock the async promises.readFile used by the service.
+  ...jest.requireActual("fs"),
+  promises: {
+    readFile: jest.fn(),
+  },
+}));
+
 describe("PermissionService", () => {
   let service: PermissionService;
   let repository: jest.Mocked<PermissionRepository>;
+  const mockReadFile = (fs as any).readFile as jest.Mock;
 
   beforeEach(() => {
     repository = {
@@ -16,6 +26,10 @@ describe("PermissionService", () => {
     } as any;
 
     service = new PermissionService(repository);
+
+    if (mockReadFile.mockReset) {
+      mockReadFile.mockReset();
+    }
   });
 
   afterEach(() => {
@@ -118,6 +132,31 @@ describe("PermissionService", () => {
       repository.updateStatus.mockResolvedValue(null);
 
       await expect(service.deprecatePermission("unknown")).rejects.toMatchObject({ statusCode: 404 });
+    });
+  });
+
+  describe("getPermissionRegistry", () => {
+    it("should load registry from file and cache result", async () => {
+      const registry = {
+        version: "1.0.0",
+        permissions: [{ permission_id: "1", code: "CODE", domain: "vault", description: "desc" }],
+      };
+
+      mockReadFile.mockResolvedValue(JSON.stringify(registry));
+
+      const first = await service.getPermissionRegistry();
+      const second = await service.getPermissionRegistry();
+
+      expect(mockReadFile).toHaveBeenCalledTimes(1);
+      expect(first).toEqual(registry);
+      expect(second).toBe(first);
+    });
+
+    it("should throw HttpError when registry fails to load", async () => {
+      mockReadFile.mockRejectedValue(new Error("boom"));
+
+      await expect(service.getPermissionRegistry()).rejects.toBeInstanceOf(HttpError);
+      await expect(service.getPermissionRegistry()).rejects.toMatchObject({ statusCode: 500 });
     });
   });
 });

@@ -18,15 +18,13 @@ export class TenantRepository {
     return await Tenant.findOne({ tenantId }).exec();
   }
 
-  async update(
-    tenantId: string,
-    updateData: Partial<TenantInterface>
-  ): Promise<TenantInterface | null> {
+  async update(tenantId: string, updateData: Partial<TenantInterface>): Promise<TenantInterface | null> {
     const Tenant = getTenantModel(this.mongoManager.getConnection());
-    return await Tenant.findOneAndUpdate(
-      { tenantId },
-      { $set: updateData },
-      { new: true }
-    ).exec();
+    return await Tenant.findOneAndUpdate({ tenantId }, { $set: updateData }, { new: true }).exec();
+  }
+
+  async incrementPermissionVersion(tenantId: string): Promise<TenantInterface | null> {
+    const Tenant = getTenantModel(this.mongoManager.getConnection());
+    return await Tenant.findOneAndUpdate({ tenantId }, { $inc: { tenantPermissionVersion: 1 } }, { new: true }).exec();
   }
 }

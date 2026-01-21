@@ -232,4 +232,49 @@ describe("RoleRepository", () => {
       });
     });
   });
+
+  describe("removePermission", () => {
+    it("should remove permission from role and increment version", async () => {
+      const updatedRole = {
+        roleId: "r1",
+        tenantId: "t1",
+        permissions: ["p2"],
+        roleVersion: 3,
+      };
+
+      mockModel.findOneAndUpdate.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(updatedRole),
+      });
+
+      const result = await repository.removePermission("t1", "r1", "p1");
+
+      expect(getRolesModel).toHaveBeenCalledWith(mockConnection);
+      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
+        {
+          roleId: "r1",
+          tenantId: "t1",
+          permissions: "p1",
+        },
+        {
+          $pull: { permissions: "p1" },
+          $inc: { roleVersion: 1 },
+        },
+        {
+          new: true,
+        }
+      );
+
+      expect(result).toEqual(updatedRole);
+    });
+
+    it("should return null if role not found or permission not in role", async () => {
+      mockModel.findOneAndUpdate.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await repository.removePermission("t1", "r1", "p999");
+
+      expect(result).toBeNull();
+    });
+  });
 });

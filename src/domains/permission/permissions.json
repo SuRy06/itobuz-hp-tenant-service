@@ -1,0 +1,71 @@
+{
+  "version": "1.0.0",
+  "permissions": [
+    {
+      "permission_id": "vault.password.read",
+      "code": "VLT_PWD_R",
+      "domain": "vault",
+      "description": "Read stored passwords and metadata from the vault"
+    },
+    {
+      "permission_id": "vault.password.create",
+      "code": "VLT_PWD_C",
+      "domain": "vault",
+      "description": "Create new password entries in the vault"
+    },
+    {
+      "permission_id": "vault.password.update",
+      "code": "VLT_PWD_U",
+      "domain": "vault",
+      "description": "Update existing password entries in the vault"
+    },
+    {
+      "permission_id": "vault.password.delete",
+      "code": "VLT_PWD_D",
+      "domain": "vault",
+      "description": "Delete password entries from the vault"
+    },
+    {
+      "permission_id": "vault.password.export",
+      "code": "VLT_PWD_X",
+      "domain": "vault",
+      "description": "Export passwords from the vault"
+    },
+    {
+      "permission_id": "user.read",
+      "code": "USR_R",
+      "domain": "identity",
+      "description": "View user profiles"
+    },
+    {
+      "permission_id": "user.suspend",
+      "code": "USR_S",
+      "domain": "identity",
+      "description": "Suspend a user account"
+    },
+    {
+      "permission_id": "role.manage",
+      "code": "ACL_ROLE_M",
+      "domain": "access_control",
+      "description": "Manage roles and permission assignments"
+    },
+    {
+      "permission_id": "audit.log.read",
+      "code": "AUD_LOG_R",
+      "domain": "audit",
+      "description": "Read audit and security logs"
+    },
+    {
+      "permission_id": "policy.security.manage",
+      "code": "POL_SEC_M",
+      "domain": "policy",
+      "description": "Manage security policies"
+    },
+    {
+      "permission_id": "billing.subscription.manage",
+      "code": "BIL_SUB_M",
+      "domain": "billing",
+      "description": "Manage billing and subscriptions"
+    }
+  ]
+}
