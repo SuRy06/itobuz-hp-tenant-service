@@ -45,7 +45,84 @@ const roleController = container.resolve(RoleController);
  */
 router.post("/:tenantId/roles", roleController.createRole);
 
-router.patch("/:tenantId/roles/:roleId/permissions", roleController.updateRolePermissions);
+router.patch(
+  "/:tenantId/roles/:roleId/permissions",
+  roleController.updateRolePermissions
+);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/roles/{roleId}/permissions:
+ *   post:
+ *     tags:
+ *       - Roles
+ *     summary: Attach permissions to a role
+ *     description: >
+ *       Attaches one or more permissions to a role within a tenant.
+ *       This operation is idempotent - attaching an already-attached permission will not cause an error.
+ *       Increments both role_version and tenant_permission_version.
+ *       All users with this role will receive the new permissions after cache refresh.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: roleId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - permission_ids
+ *             properties:
+ *               permission_ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["perm-id-1", "perm-id-2"]
+ *     responses:
+ *       200:
+ *         description: Permissions attached successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 roleId:
+ *                   type: string
+ *                 tenantId:
+ *                   type: string
+ *                 roleVersion:
+ *                   type: number
+ *                 tenantPermissionVersion:
+ *                   type: number
+ *                 attachedPermissions:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 newlyAttached:
+ *                   type: number
+ *                   description: Count of permissions that were newly attached (not already present)
+ *       400:
+ *         description: Invalid input or permission IDs not found
+ *       404:
+ *         description: Role not found
+ *       403:
+ *         description: Forbidden
+ */
+router.post(
+  "/:tenantId/roles/:roleId/permissions",
+  roleController.attachPermissionsToRole
+);
 
 /**
  * @openapi
@@ -99,7 +176,10 @@ router.patch("/:tenantId/roles/:roleId/permissions", roleController.updateRolePe
  *       403:
  *         description: Forbidden
  */
-router.delete("/:tenantId/roles/:roleId/permissions/:permissionId", roleController.removePermissionFromRole);
+router.delete(
+  "/:tenantId/roles/:roleId/permissions/:permissionId",
+  roleController.removePermissionFromRole
+);
 
 router.get("/:tenantId/roles", roleController.listRole);
 

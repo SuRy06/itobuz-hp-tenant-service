@@ -116,7 +116,12 @@ describe("RoleController", () => {
 
       await controller.updateRolePermissions(req, res, next);
 
-      expect(service.updateRolePermissions).toHaveBeenCalledWith("t1", "r1", ["p1"], ["p2"]);
+      expect(service.updateRolePermissions).toHaveBeenCalledWith(
+        "t1",
+        "r1",
+        ["p1"],
+        ["p2"]
+      );
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(updatedRole);
@@ -170,7 +175,11 @@ describe("RoleController", () => {
 
       await controller.listRole(req, res, next);
 
-      expect(service.listRoles).toHaveBeenCalledWith("tenant-1", 100, undefined);
+      expect(service.listRoles).toHaveBeenCalledWith(
+        "tenant-1",
+        100,
+        undefined
+      );
     });
 
     it("should pass cursor to service", async () => {
@@ -184,7 +193,11 @@ describe("RoleController", () => {
 
       await controller.listRole(req, res, next);
 
-      expect(service.listRoles).toHaveBeenCalledWith("tenant-1", 10, "encoded-cursor");
+      expect(service.listRoles).toHaveBeenCalledWith(
+        "tenant-1",
+        10,
+        "encoded-cursor"
+      );
     });
   });
 
@@ -217,7 +230,76 @@ describe("RoleController", () => {
 
       await controller.removePermissionFromRole(req, res, next);
 
-      expect(service.removePermissionFromRole).toHaveBeenCalledWith("t1", "r1", "p1");
+      expect(service.removePermissionFromRole).toHaveBeenCalledWith(
+        "t1",
+        "r1",
+        "p1"
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(result);
+    });
+  });
+
+  describe("attachPermissionsToRole", () => {
+    it("should call next with validation error", async () => {
+      req.body = {
+        permission_ids: "NOT_AN_ARRAY",
+      };
+      req.params = { tenantId: "t1", roleId: "r1" };
+
+      await controller.attachPermissionsToRole(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(HttpError));
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("should call next with error if tenantId is missing", async () => {
+      req.body = { permission_ids: ["p1"] };
+      req.params = { roleId: "r1" };
+
+      await controller.attachPermissionsToRole(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(HttpError));
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("should call next with error if roleId is missing", async () => {
+      req.body = { permission_ids: ["p1"] };
+      req.params = { tenantId: "t1" };
+
+      await controller.attachPermissionsToRole(req, res, next);
+
+      expect(next).toHaveBeenCalledWith(expect.any(HttpError));
+      expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("should attach permissions to role successfully", async () => {
+      req.params = {
+        tenantId: "t1",
+        roleId: "r1",
+      };
+      req.body = {
+        permission_ids: ["p1", "p2", "p3"],
+      };
+
+      const result = {
+        roleId: "r1",
+        tenantId: "t1",
+        roleVersion: 4,
+        attachedPermissions: ["p1", "p2", "p3"],
+      };
+
+      service.attachPermissionsToRole = jest
+        .fn()
+        .mockResolvedValue(result as any);
+
+      await controller.attachPermissionsToRole(req, res, next);
+
+      expect(service.attachPermissionsToRole).toHaveBeenCalledWith("t1", "r1", [
+        "p1",
+        "p2",
+        "p3",
+      ]);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(result);
     });

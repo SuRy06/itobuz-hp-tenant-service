@@ -54,13 +54,19 @@ export class RoleService {
       throw new HttpError(400, "Nothing to update");
     }
 
-    const existingPermissions = await this.permissionRepository.findByIds(allPermissionIds);
+    const existingPermissions =
+      await this.permissionRepository.findByIds(allPermissionIds);
 
     if (existingPermissions.length !== allPermissionIds.length) {
       throw new HttpError(400, "Invalid permission ID(s)");
     }
 
-    const updatedRole = await this.roleRepository.updatePermissionsAtomic(tenantId, roleId, add, remove);
+    const updatedRole = await this.roleRepository.updatePermissionsAtomic(
+      tenantId,
+      roleId,
+      add,
+      remove
+    );
 
     if (!updatedRole) {
       throw new HttpError(404, "Role not found");
@@ -74,15 +80,27 @@ export class RoleService {
     };
   }
 
-  public async listRoles(tenantId: string, limit: number, cursor: string | undefined): Promise<any> {
-    const decodedCursor = cursor ? Buffer.from(cursor, "base64").toString("utf8") : undefined;
+  public async listRoles(
+    tenantId: string,
+    limit: number,
+    cursor: string | undefined
+  ): Promise<any> {
+    const decodedCursor = cursor
+      ? Buffer.from(cursor, "base64").toString("utf8")
+      : undefined;
 
-    const { roles } = await this.roleRepository.listByTenant(tenantId, limit, decodedCursor);
+    const { roles } = await this.roleRepository.listByTenant(
+      tenantId,
+      limit,
+      decodedCursor
+    );
 
     const hasNext = roles.length > limit;
     const data = hasNext ? roles.slice(0, limit) : roles;
 
-    const nextCursor = hasNext ? Buffer.from(String(data[data.length - 1]._id)).toString("base64") : null;
+    const nextCursor = hasNext
+      ? Buffer.from(String(data[data.length - 1]._id)).toString("base64")
+      : null;
 
     return {
       data: data.map((role: roleDB) => ({
@@ -98,9 +116,14 @@ export class RoleService {
     };
   }
 
-  public async removePermissionFromRole(tenantId: string, roleId: string, permissionId: string): Promise<any> {
+  public async removePermissionFromRole(
+    tenantId: string,
+    roleId: string,
+    permissionId: string
+  ): Promise<any> {
     // Verify permission exists
-    const permission = await this.permissionRepository.findByPermissionId(permissionId);
+    const permission =
+      await this.permissionRepository.findByPermissionId(permissionId);
     if (!permission) {
       throw new HttpError(404, "Permission not found");
     }
@@ -112,35 +135,105 @@ export class RoleService {
     }
 
     // Check if role-permission mapping exists
-    const rolePermission = await this.rolePermissionRepository.findByTenantRoleAndPermission(
-      tenantId,
-      roleId,
-      permissionId
-    );
+    const rolePermission =
+      await this.rolePermissionRepository.findByTenantRoleAndPermission(
+        tenantId,
+        roleId,
+        permissionId
+      );
 
     if (!rolePermission) {
       throw new HttpError(404, "Permission not assigned to this role");
     }
 
     // Remove permission from role
-    await this.rolePermissionRepository.removePermission(tenantId, roleId, permissionId);
+    await this.rolePermissionRepository.removePermission(
+      tenantId,
+      roleId,
+      permissionId
+    );
 
     // Increment role version
-    const updatedRole = await this.roleRepository.updatePermissionsAtomic(tenantId, roleId, [], []);
+    const updatedRole = await this.roleRepository.updatePermissionsAtomic(
+      tenantId,
+      roleId,
+      [],
+      []
+    );
 
     if (!updatedRole) {
       throw new HttpError(404, "Role not found");
     }
 
     // Increment tenant permission version to invalidate user permission caches
-    const tenantVersionUpdate = await this.tenantRepository.incrementPermissionVersion(tenantId);
+    const tenantVersionUpdate =
+      await this.tenantRepository.incrementPermissionVersion(tenantId);
 
     return {
       roleId: updatedRole.roleId,
       tenantId: updatedRole.tenantId,
       roleVersion: updatedRole.roleVersion,
-      tenantPermissionVersion: tenantVersionUpdate?.tenantPermissionVersion || 1,
+      tenantPermissionVersion:
+        tenantVersionUpdate?.tenantPermissionVersion || 1,
       removedPermission: permissionId,
+    };
+  }
+
+  public async attachPermissionsToRole(
+    tenantId: string,
+    roleId: string,
+    permissionIds: string[]
+  ): Promise<any> {
+    // Verify role exists and belongs to tenant
+    const role = await this.roleRepository.findByRoleId(tenantId, roleId);
+    if (!role) {
+      throw new HttpError(404, "Role not found in this tenant");
+    }
+
+    // Validate all permissions exist in the registry
+    const existingPermissions =
+      await this.permissionRepository.findByIds(permissionIds);
+    if (existingPermissions.length !== permissionIds.length) {
+      const foundIds = existingPermissions.map((p) => p.permissionId);
+      const invalidIds = permissionIds.filter((id) => !foundIds.includes(id));
+      throw new HttpError(
+        400,
+        `Invalid permission ID(s): ${invalidIds.join(", ")}`
+      );
+    }
+
+    // Idempotently attach permissions
+    const attachedPermissions =
+      await this.rolePermissionRepository.attachPermissions(
+        tenantId,
+        roleId,
+        permissionIds
+      );
+
+    // Increment role version
+    const updatedRole = await this.roleRepository.updatePermissionsAtomic(
+      tenantId,
+      roleId,
+      [],
+      []
+    );
+
+    if (!updatedRole) {
+      throw new HttpError(404, "Role not found");
+    }
+
+    // Increment tenant permission version to invalidate user permission caches
+    const tenantVersionUpdate =
+      await this.tenantRepository.incrementPermissionVersion(tenantId);
+
+    return {
+      roleId: updatedRole.roleId,
+      tenantId: updatedRole.tenantId,
+      roleVersion: updatedRole.roleVersion,
+      tenantPermissionVersion:
+        tenantVersionUpdate?.tenantPermissionVersion || 1,
+      attachedPermissions: attachedPermissions.map((ap) => ap.permissionId),
+      newlyAttached: attachedPermissions.filter((ap) => ap.isNew).length,
     };
   }
 }

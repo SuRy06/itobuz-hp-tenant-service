@@ -1,13 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import { injectable } from "tsyringe";
-import { createRoleSchema, updateRolePermissionsSchema } from "../validation/role.validation";
+import {
+  createRoleSchema,
+  updateRolePermissionsSchema,
+  attachPermissionsSchema,
+} from "../validation/role.validation";
 import { HttpError } from "../../common/errors/http.error";
 import { RoleService } from "../services/role.service";
 
 @injectable()
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
-  public createRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public createRole = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { error } = createRoleSchema.validate(req.body);
       if (error) {
@@ -29,7 +37,11 @@ export class RoleController {
     }
   };
 
-  public updateRolePermissions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public updateRolePermissions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { error } = updateRolePermissionsSchema.validate(req.body);
       if (error) {
@@ -39,7 +51,12 @@ export class RoleController {
       const { tenantId, roleId } = req.params;
       const { add = [], remove = [] } = req.body;
 
-      const result = await this.roleService.updateRolePermissions(tenantId, roleId, add, remove);
+      const result = await this.roleService.updateRolePermissions(
+        tenantId,
+        roleId,
+        add,
+        remove
+      );
 
       res.status(200).json(result);
     } catch (error) {
@@ -47,7 +64,11 @@ export class RoleController {
     }
   };
 
-  public listRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public listRole = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { tenantId } = req.params;
 
@@ -66,15 +87,56 @@ export class RoleController {
     }
   };
 
-  public removePermissionFromRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public removePermissionFromRole = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { tenantId, roleId, permissionId } = req.params;
 
       if (!tenantId || !roleId || !permissionId) {
-        throw new HttpError(400, "tenantId, roleId, and permissionId are required");
+        throw new HttpError(
+          400,
+          "tenantId, roleId, and permissionId are required"
+        );
       }
 
-      const result = await this.roleService.removePermissionFromRole(tenantId, roleId, permissionId);
+      const result = await this.roleService.removePermissionFromRole(
+        tenantId,
+        roleId,
+        permissionId
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public attachPermissionsToRole = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { error } = attachPermissionsSchema.validate(req.body);
+      if (error) {
+        throw new HttpError(400, error.details[0].message);
+      }
+
+      const { tenantId, roleId } = req.params;
+      const { permission_ids } = req.body;
+
+      if (!tenantId || !roleId) {
+        throw new HttpError(400, "tenantId and roleId are required");
+      }
+
+      const result = await this.roleService.attachPermissionsToRole(
+        tenantId,
+        roleId,
+        permission_ids
+      );
 
       res.status(200).json(result);
     } catch (error) {
