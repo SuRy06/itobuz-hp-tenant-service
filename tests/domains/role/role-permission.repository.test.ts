@@ -103,81 +103,101 @@ describe("RolePermissionRepository", () => {
 
       expect(result).toBeNull();
     });
+  });
 
-    describe("attachPermissions", () => {
-      it("should attach new permissions to a role", async () => {
-        mockModel.findOne.mockResolvedValue(null);
-        mockModel.create.mockResolvedValue({});
+  describe("attachPermissions", () => {
+    it("should attach new permissions to a role", async () => {
+      mockModel.findOne.mockResolvedValue(null);
+      mockModel.create.mockResolvedValue({});
 
-        const result = await repository.attachPermissions("t1", "r1", ["p1", "p2"]);
+      const result = await repository.attachPermissions("t1", "r1", ["p1", "p2"]);
 
-        expect(mockModel.findOne).toHaveBeenCalledTimes(2);
-        expect(mockModel.create).toHaveBeenCalledTimes(2);
-        expect(mockModel.create).toHaveBeenCalledWith({
+      expect(mockModel.findOne).toHaveBeenCalledTimes(2);
+      expect(mockModel.create).toHaveBeenCalledTimes(2);
+      expect(mockModel.create).toHaveBeenCalledWith({
         tenantId: "t1",
         roleId: "r1",
         permissionId: "p1",
         effect: "ALLOW",
-        });
-        expect(mockModel.create).toHaveBeenCalledWith({
+      });
+      expect(mockModel.create).toHaveBeenCalledWith({
         tenantId: "t1",
         roleId: "r1",
         permissionId: "p2",
         effect: "ALLOW",
-        });
-        expect(result).toEqual([
+      });
+      expect(result).toEqual([
         { permissionId: "p1", isNew: true },
         { permissionId: "p2", isNew: true },
-        ]);
-      });
+      ]);
+    });
 
-      it("should handle existing permissions (idempotent)", async () => {
-        const existingPermission = {
+    it("should handle existing permissions (idempotent)", async () => {
+      const existingPermission = {
         tenantId: "t1",
         roleId: "r1",
         permissionId: "p1",
         effect: "ALLOW",
-        };
+      };
 
-        mockModel.findOne.mockResolvedValue(existingPermission);
+      mockModel.findOne.mockResolvedValue(existingPermission);
 
-        const result = await repository.attachPermissions("t1", "r1", ["p1"]);
+      const result = await repository.attachPermissions("t1", "r1", ["p1"]);
 
-        expect(mockModel.findOne).toHaveBeenCalledWith({
+      expect(mockModel.findOne).toHaveBeenCalledWith({
         tenantId: "t1",
         roleId: "r1",
         permissionId: "p1",
-        });
-        expect(mockModel.create).not.toHaveBeenCalled();
-        expect(result).toEqual([{ permissionId: "p1", isNew: false }]);
       });
+      expect(mockModel.create).not.toHaveBeenCalled();
+      expect(result).toEqual([{ permissionId: "p1", isNew: false }]);
+    });
 
-      it("should handle mix of new and existing permissions", async () => {
-        mockModel.findOne
+    it("should handle mix of new and existing permissions", async () => {
+      mockModel.findOne
         .mockResolvedValueOnce({ permissionId: "p1" })
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(null);
 
-        mockModel.create.mockResolvedValue({});
+      mockModel.create.mockResolvedValue({});
 
-        const result = await repository.attachPermissions("t1", "r1", ["p1", "p2", "p3"]);
+      const result = await repository.attachPermissions("t1", "r1", ["p1", "p2", "p3"]);
 
-        expect(mockModel.findOne).toHaveBeenCalledTimes(3);
-        expect(mockModel.create).toHaveBeenCalledTimes(2);
-        expect(result).toEqual([
+      expect(mockModel.findOne).toHaveBeenCalledTimes(3);
+      expect(mockModel.create).toHaveBeenCalledTimes(2);
+      expect(result).toEqual([
         { permissionId: "p1", isNew: false },
         { permissionId: "p2", isNew: true },
         { permissionId: "p3", isNew: true },
-        ]);
+      ]);
+    });
+
+    it("should return empty array for empty permission list", async () => {
+      const result = await repository.attachPermissions("t1", "r1", []);
+
+      expect(mockModel.findOne).not.toHaveBeenCalled();
+      expect(mockModel.create).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it("should call getConnection and getRolePermissionModel correctly", async () => {
+      mockModel.findOne.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(null),
       });
 
-      it("should return empty array for empty permission list", async () => {
-        const result = await repository.attachPermissions("t1", "r1", []);
+      await repository.findByTenantRoleAndPermission("t1", "r1", "p1");
 
-        expect(mockModel.findOne).not.toHaveBeenCalled();
-        expect(mockModel.create).not.toHaveBeenCalled();
-        expect(result).toEqual([]);
+      expect(mongoManager.getConnection).toHaveBeenCalled();
+      expect(getRolePermissionModel).toHaveBeenCalledWith(mockConnection);
+    });
+
+    it("should handle database errors gracefully", async () => {
+      const error = new Error("Database error");
+      mockModel.findOne.mockReturnValue({
+        lean: jest.fn().mockRejectedValue(error),
       });
-      });
+
+      await expect(repository.findByTenantRoleAndPermission("t1", "r1", "p1")).rejects.toThrow("Database error");
+    });
   });
 });

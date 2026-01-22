@@ -333,144 +333,112 @@ describe("RoleService", () => {
 
       expect(result.tenantPermissionVersion).toBe(1);
     });
+  });
+  describe("attachPermissionsToRole", () => {
+    it("should throw 404 if role not found", async () => {
+      repository.findByRoleId.mockResolvedValue(null);
 
-    describe("attachPermissionsToRole", () => {
-      it("should throw 404 if role not found", async () => {
-        repository.findByRoleId.mockResolvedValue(null);
-
-        await expect(
-        service.attachPermissionsToRole("t1", "r1", ["p1"])
-        ).rejects.toMatchObject({
+      await expect(service.attachPermissionsToRole("t1", "r1", ["p1"])).rejects.toMatchObject({
         statusCode: 404,
         message: "Role not found in this tenant",
-        });
-
-        expect(repository.findByRoleId).toHaveBeenCalledWith("t1", "r1");
-        expect(permissionRepository.findByIds).not.toHaveBeenCalled();
       });
 
-      it("should throw 400 if any permission ID is invalid", async () => {
-        repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
-        permissionRepository.findByIds.mockResolvedValue([
-        { permissionId: "p1" },
-        ] as any);
+      expect(repository.findByRoleId).toHaveBeenCalledWith("t1", "r1");
+      expect(permissionRepository.findByIds).not.toHaveBeenCalled();
+    });
 
-        await expect(
-        service.attachPermissionsToRole("t1", "r1", ["p1", "p2"])
-        ).rejects.toMatchObject({
+    it("should throw 400 if any permission ID is invalid", async () => {
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      permissionRepository.findByIds.mockResolvedValue([{ permissionId: "p1" }] as any);
+
+      await expect(service.attachPermissionsToRole("t1", "r1", ["p1", "p2"])).rejects.toMatchObject({
         statusCode: 400,
         message: "Invalid permission ID(s): p2",
-        });
-
-        expect(permissionRepository.findByIds).toHaveBeenCalledWith(["p1", "p2"]);
       });
 
-      it("should attach permissions to role and increment versions", async () => {
-        repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
-        permissionRepository.findByIds.mockResolvedValue([
-        { permissionId: "p1" },
-        { permissionId: "p2" },
-        ] as any);
+      expect(permissionRepository.findByIds).toHaveBeenCalledWith(["p1", "p2"]);
+    });
 
-        const attachedPermissions = [
+    it("should attach permissions to role and increment versions", async () => {
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      permissionRepository.findByIds.mockResolvedValue([{ permissionId: "p1" }, { permissionId: "p2" }] as any);
+
+      const attachedPermissions = [
         { permissionId: "p1", isNew: true },
         { permissionId: "p2", isNew: false },
-        ] as any;
+      ] as any;
 
-        rolePermissionRepository.attachPermissions = jest
-        .fn()
-        .mockResolvedValue(attachedPermissions);
+      rolePermissionRepository.attachPermissions = jest.fn().mockResolvedValue(attachedPermissions);
 
-        const updatedRole = {
+      const updatedRole = {
         roleId: "r1",
         tenantId: "t1",
         roleVersion: 4,
-        } as any;
+      } as any;
 
-        repository.updatePermissionsAtomic.mockResolvedValue(updatedRole);
+      repository.updatePermissionsAtomic.mockResolvedValue(updatedRole);
 
-        const tenantUpdate = {
+      const tenantUpdate = {
         tenantId: "t1",
         tenantPermissionVersion: 8,
-        } as any;
+      } as any;
 
-        tenantRepository.incrementPermissionVersion.mockResolvedValue(tenantUpdate);
+      tenantRepository.incrementPermissionVersion.mockResolvedValue(tenantUpdate);
 
-        const result = await service.attachPermissionsToRole("t1", "r1", [
-        "p1",
-        "p2",
-        ]);
+      const result = await service.attachPermissionsToRole("t1", "r1", ["p1", "p2"]);
 
-        expect(repository.findByRoleId).toHaveBeenCalledWith("t1", "r1");
-        expect(permissionRepository.findByIds).toHaveBeenCalledWith(["p1", "p2"]);
-        expect(rolePermissionRepository.attachPermissions).toHaveBeenCalledWith(
-        "t1",
-        "r1",
-        ["p1", "p2"]
-        );
-        expect(repository.updatePermissionsAtomic).toHaveBeenCalledWith(
-        "t1",
-        "r1",
-        [],
-        []
-        );
-        expect(tenantRepository.incrementPermissionVersion).toHaveBeenCalledWith(
-        "t1"
-        );
+      expect(repository.findByRoleId).toHaveBeenCalledWith("t1", "r1");
+      expect(permissionRepository.findByIds).toHaveBeenCalledWith(["p1", "p2"]);
+      expect(rolePermissionRepository.attachPermissions).toHaveBeenCalledWith("t1", "r1", ["p1", "p2"]);
+      expect(repository.updatePermissionsAtomic).toHaveBeenCalledWith("t1", "r1", [], []);
+      expect(tenantRepository.incrementPermissionVersion).toHaveBeenCalledWith("t1");
 
-        expect(result).toEqual({
+      expect(result).toEqual({
         roleId: "r1",
         tenantId: "t1",
         roleVersion: 4,
         tenantPermissionVersion: 8,
         attachedPermissions: ["p1", "p2"],
         newlyAttached: 1,
-        });
       });
+    });
 
-      it("should handle missing tenant version gracefully", async () => {
-        repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
-        permissionRepository.findByIds.mockResolvedValue([
-        { permissionId: "p1" },
-        ] as any);
+    it("should handle missing tenant version gracefully", async () => {
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      permissionRepository.findByIds.mockResolvedValue([{ permissionId: "p1" }] as any);
 
-        rolePermissionRepository.attachPermissions = jest
+      rolePermissionRepository.attachPermissions = jest
         .fn()
         .mockResolvedValue([{ permissionId: "p1", isNew: true }] as any);
 
-        const updatedRole = {
+      const updatedRole = {
         roleId: "r1",
         tenantId: "t1",
         roleVersion: 2,
-        } as any;
+      } as any;
 
-        repository.updatePermissionsAtomic.mockResolvedValue(updatedRole);
-        tenantRepository.incrementPermissionVersion.mockResolvedValue(null);
+      repository.updatePermissionsAtomic.mockResolvedValue(updatedRole);
+      tenantRepository.incrementPermissionVersion.mockResolvedValue(null);
 
-        const result = await service.attachPermissionsToRole("t1", "r1", ["p1"]);
+      const result = await service.attachPermissionsToRole("t1", "r1", ["p1"]);
 
-        expect(result.tenantPermissionVersion).toBe(1);
-      });
+      expect(result.tenantPermissionVersion).toBe(1);
+    });
 
-      it("should throw 404 if role not found after attachment", async () => {
-        repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
-        permissionRepository.findByIds.mockResolvedValue([
-        { permissionId: "p1" },
-        ] as any);
+    it("should throw 404 if role not found after attachment", async () => {
+      repository.findByRoleId.mockResolvedValue({ roleId: "r1" } as any);
+      permissionRepository.findByIds.mockResolvedValue([{ permissionId: "p1" }] as any);
 
-        rolePermissionRepository.attachPermissions = jest
+      rolePermissionRepository.attachPermissions = jest
         .fn()
         .mockResolvedValue([{ permissionId: "p1", isNew: true }] as any);
 
-        repository.updatePermissionsAtomic.mockResolvedValue(null);
+      repository.updatePermissionsAtomic.mockResolvedValue(null);
 
-        await expect(
-        service.attachPermissionsToRole("t1", "r1", ["p1"])
-        ).rejects.toMatchObject({
+      await expect(service.attachPermissionsToRole("t1", "r1", ["p1"])).rejects.toMatchObject({
         statusCode: 404,
         message: "Role not found",
-        });
       });
-      });
+    });
   });
 });
