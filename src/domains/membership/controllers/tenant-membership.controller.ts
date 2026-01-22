@@ -4,14 +4,21 @@ import {
   permissionOverrideSchema,
   suspendTenantMemberSchema,
   updateMembershipRolesSchema,
+  assignRoleSchema,
 } from "../validation/tenant-membership.validator";
 import { HttpError } from "../../common/errors/http.error";
 import { TenantMembershipService } from "../services/tenant-membership.service";
 
 @injectable()
 export class TenantMembershipController {
-  constructor(private readonly tenantMembershipService: TenantMembershipService) {}
-  public updateTenantMembershipRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  constructor(
+    private readonly tenantMembershipService: TenantMembershipService
+  ) {}
+  public updateTenantMembershipRole = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { error } = updateMembershipRolesSchema.validate(req.body);
       if (error) {
@@ -20,7 +27,12 @@ export class TenantMembershipController {
       const { tenantId, userId } = req.params;
       const { add = [], remove = [] } = req.body;
 
-      const result = await this.tenantMembershipService.updateMembershipRoles(tenantId, userId, add, remove);
+      const result = await this.tenantMembershipService.updateMembershipRoles(
+        tenantId,
+        userId,
+        add,
+        remove
+      );
 
       res.status(200).json(result);
     } catch (error) {
@@ -28,7 +40,11 @@ export class TenantMembershipController {
     }
   };
 
-  public allowPermissionOverride = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public allowPermissionOverride = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { error } = permissionOverrideSchema.validate(req.body);
       if (error) throw new HttpError(400, error.details[0].message);
@@ -36,7 +52,13 @@ export class TenantMembershipController {
       const { tenantId, userId } = req.params;
       const { permissionId, reason } = req.body;
 
-      const result = await this.tenantMembershipService.setOverride(tenantId, userId, permissionId, "ALLOW", reason);
+      const result = await this.tenantMembershipService.setOverride(
+        tenantId,
+        userId,
+        permissionId,
+        "ALLOW",
+        reason
+      );
 
       res.status(201).json(result);
     } catch (error) {
@@ -44,7 +66,11 @@ export class TenantMembershipController {
     }
   };
 
-  public denyPermissionOverride = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public denyPermissionOverride = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { error } = permissionOverrideSchema.validate(req.body);
       if (error) throw new HttpError(400, error.details[0].message);
@@ -52,7 +78,13 @@ export class TenantMembershipController {
       const { tenantId, userId } = req.params;
       const { permissionId, reason } = req.body;
 
-      const result = await this.tenantMembershipService.setOverride(tenantId, userId, permissionId, "DENY", reason);
+      const result = await this.tenantMembershipService.setOverride(
+        tenantId,
+        userId,
+        permissionId,
+        "DENY",
+        reason
+      );
 
       res.status(201).json(result);
     } catch (err) {
@@ -60,11 +92,19 @@ export class TenantMembershipController {
     }
   };
 
-  public removePermissionOverride = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public removePermissionOverride = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { tenantId, userId, permissionId } = req.params;
 
-      const result = await this.tenantMembershipService.removeOverride(tenantId, userId, permissionId);
+      const result = await this.tenantMembershipService.removeOverride(
+        tenantId,
+        userId,
+        permissionId
+      );
 
       res.status(200).json(result);
     } catch (err) {
@@ -72,14 +112,21 @@ export class TenantMembershipController {
     }
   };
 
-  public suspendTenantMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public suspendTenantMember = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { error } = suspendTenantMemberSchema.validate(req.body);
       if (error) throw new HttpError(400, error.details[0].message);
 
       const { tenantId, userId } = req.params;
 
-      const result = await this.tenantMembershipService.suspendMembership(tenantId, userId);
+      const result = await this.tenantMembershipService.suspendMembership(
+        tenantId,
+        userId
+      );
 
       res.status(200).json(result);
     } catch (err) {
@@ -87,11 +134,44 @@ export class TenantMembershipController {
     }
   };
 
-  public unsuspendTenantMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public unsuspendTenantMember = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
       const { tenantId, userId } = req.params;
 
-      const result = await this.tenantMembershipService.unsuspendMembership(tenantId, userId);
+      const result = await this.tenantMembershipService.unsuspendMembership(
+        tenantId,
+        userId
+      );
+
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public assignRoleToUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { error } = assignRoleSchema.validate(req.body);
+      if (error) {
+        throw new HttpError(400, error.details[0].message);
+      }
+
+      const { tenantId, userId } = req.params;
+      const { roleId } = req.body;
+
+      const result = await this.tenantMembershipService.assignRoleToUser(
+        tenantId,
+        userId,
+        roleId
+      );
 
       res.status(200).json(result);
     } catch (err) {

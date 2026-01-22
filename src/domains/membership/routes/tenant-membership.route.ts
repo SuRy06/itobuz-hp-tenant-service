@@ -3,9 +3,14 @@ import { container } from "tsyringe";
 import { TenantMembershipController } from "../controllers/tenant-membership.controller";
 
 const router = Router();
-const tenantMembershipController = container.resolve(TenantMembershipController);
+const tenantMembershipController = container.resolve(
+  TenantMembershipController
+);
 
-router.patch("/:tenantId/user/:userId/roles", tenantMembershipController.updateTenantMembershipRole);
+router.patch(
+  "/:tenantId/user/:userId/roles",
+  tenantMembershipController.updateTenantMembershipRole
+);
 
 /**
  * @openapi
@@ -80,7 +85,10 @@ router.patch("/:tenantId/user/:userId/roles", tenantMembershipController.updateT
  *       404:
  *         description: Permission not found in registry
  */
-router.post("/:tenantId/users/:userId/permissions/allow", tenantMembershipController.allowPermissionOverride);
+router.post(
+  "/:tenantId/users/:userId/permissions/allow",
+  tenantMembershipController.allowPermissionOverride
+);
 
 /**
  * @openapi
@@ -155,7 +163,10 @@ router.post("/:tenantId/users/:userId/permissions/allow", tenantMembershipContro
  *       404:
  *         description: Permission not found in registry
  */
-router.post("/:tenantId/users/:userId/permissions/deny", tenantMembershipController.denyPermissionOverride);
+router.post(
+  "/:tenantId/users/:userId/permissions/deny",
+  tenantMembershipController.denyPermissionOverride
+);
 
 /**
  * @openapi
@@ -218,7 +229,90 @@ router.delete(
   "/:tenantId/users/:userId/permissions/:permissionId",
   tenantMembershipController.removePermissionOverride
 );
-router.post("/:tenantId/users/:userId/suspend", tenantMembershipController.suspendTenantMember);
-router.post("/:tenantId/users/:userId/unsuspend", tenantMembershipController.unsuspendTenantMember);
+
+router.post(
+  "/:tenantId/users/:userId/suspend",
+  tenantMembershipController.suspendTenantMember
+);
+
+router.post(
+  "/:tenantId/users/:userId/unsuspend",
+  tenantMembershipController.unsuspendTenantMember
+);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/users/{userId}/roles:
+ *   post:
+ *     tags:
+ *       - Membership Roles
+ *     summary: Assign a role to a user in a tenant
+ *     description: >
+ *       Assigns a single role to a user within a tenant.
+ *
+ *       **Key behaviors**:
+ *       - **Idempotent**: If the role is already assigned, no duplicate is created
+ *       - Verifies that the role belongs to the specified tenant
+ *       - Verifies that the user membership exists in the tenant
+ *       - Increments `membershipVersion` to invalidate authorization caches
+ *
+ *       Requires appropriate permissions.
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The tenant ID
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - role_id
+ *             properties:
+ *               role_id:
+ *                 type: string
+ *                 description: Role ID to assign (must belong to the tenant)
+ *                 example: "role-admin-123"
+ *     responses:
+ *       200:
+ *         description: Role assigned successfully (or was already assigned)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tenantId:
+ *                   type: string
+ *                   format: uuid
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                 roleId:
+ *                   type: string
+ *                   description: The role ID that was assigned
+ *                 membershipVersion:
+ *                   type: integer
+ *                   description: Updated membership version for cache invalidation
+ *       400:
+ *         description: Invalid role ID for tenant or validation error
+ *       404:
+ *         description: Membership not found
+ */
+router.post(
+  "/:tenantId/users/:userId/roles",
+  tenantMembershipController.assignRoleToUser
+);
 
 export default router;

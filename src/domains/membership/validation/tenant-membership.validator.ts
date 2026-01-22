@@ -13,3 +13,7 @@ export const permissionOverrideSchema = Joi.object({
 export const suspendTenantMemberSchema = Joi.object({
   reason: Joi.string().optional(),
 });
+
+export const assignRoleSchema = Joi.object({
+  roleId: Joi.string().required(),
+});

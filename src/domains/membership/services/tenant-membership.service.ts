@@ -15,7 +15,12 @@ export class TenantMembershipService {
     private readonly membershipOverrideRepository: MembershipOverrideRepository,
     private readonly permissionRepository: PermissionRepository
   ) {}
-  async updateMembershipRoles(tenantId: string, userId: string, add: string[], remove: string[]) {
+  async updateMembershipRoles(
+    tenantId: string,
+    userId: string,
+    add: string[],
+    remove: string[]
+  ) {
     // TODO - check the permission of requester
 
     const roleIds = [...add, ...remove];
@@ -23,7 +28,10 @@ export class TenantMembershipService {
       throw new HttpError(400, "Nothing to update");
     }
 
-    const roles = await this.roleRepository.findByTenantAndRoleIds(tenantId, roleIds);
+    const roles = await this.roleRepository.findByTenantAndRoleIds(
+      tenantId,
+      roleIds
+    );
 
     if (roles.length !== roleIds.length) {
       throw new HttpError(400, "Invalid role ID(s) for tenant");
@@ -58,12 +66,17 @@ export class TenantMembershipService {
   ): Promise<any> {
     // TODO - check the permission of requester
 
-    const permission = await this.permissionRepository.findByPermissionId(permissionId);
+    const permission =
+      await this.permissionRepository.findByPermissionId(permissionId);
     if (!permission) {
       throw new HttpError(400, "Invalid permissionId");
     }
 
-    const membership = await this.tenantMembershipRepository.findByTenantAndUser(tenantId, userId);
+    const membership =
+      await this.tenantMembershipRepository.findByTenantAndUser(
+        tenantId,
+        userId
+      );
     if (!membership) {
       throw new HttpError(404, "Membership not found");
     }
@@ -76,7 +89,8 @@ export class TenantMembershipService {
       reason
     );
 
-    const updatedMembership = await this.tenantMembershipRepository.increaseVersion(tenantId, userId);
+    const updatedMembership =
+      await this.tenantMembershipRepository.increaseVersion(tenantId, userId);
 
     return {
       tenantId: tenantId,
@@ -88,16 +102,25 @@ export class TenantMembershipService {
     };
   }
 
-  async removeOverride(tenantId: string, userId: string, permissionId: string): Promise<any> {
+  async removeOverride(
+    tenantId: string,
+    userId: string,
+    permissionId: string
+  ): Promise<any> {
     // TODO - check the permission of requester
 
-    const deleted = await this.membershipOverrideRepository.deleteOverride(tenantId, userId, permissionId);
+    const deleted = await this.membershipOverrideRepository.deleteOverride(
+      tenantId,
+      userId,
+      permissionId
+    );
 
     if (!deleted) {
       throw new HttpError(404, "Override not found");
     }
 
-    const updatedMembership = await this.tenantMembershipRepository.increaseVersion(tenantId, userId);
+    const updatedMembership =
+      await this.tenantMembershipRepository.increaseVersion(tenantId, userId);
 
     return {
       tenantId: tenantId,
@@ -118,7 +141,11 @@ export class TenantMembershipService {
   }> {
     // TODO - check the permission of requester
 
-    const membership = await this.tenantMembershipRepository.updateStatus(tenantId, userId, "SUSPENDED");
+    const membership = await this.tenantMembershipRepository.updateStatus(
+      tenantId,
+      userId,
+      "SUSPENDED"
+    );
 
     if (!membership) {
       throw new HttpError(404, "Membership not found");
@@ -143,7 +170,11 @@ export class TenantMembershipService {
   }> {
     // TODO - check the permission of requester
 
-    const membership = await this.tenantMembershipRepository.updateStatus(tenantId, userId, "ACTIVE");
+    const membership = await this.tenantMembershipRepository.updateStatus(
+      tenantId,
+      userId,
+      "ACTIVE"
+    );
 
     if (!membership) {
       throw new HttpError(404, "Membership not found");
@@ -154,6 +185,56 @@ export class TenantMembershipService {
       userId: membership.userId,
       status: membership.status,
       membershipVersion: membership.membershipVersion,
+    };
+  }
+
+  async assignRoleToUser(
+    tenantId: string,
+    userId: string,
+    roleId: string
+  ): Promise<{
+    tenantId: string;
+    userId: string;
+    roleId: string;
+    membershipVersion: number;
+  }> {
+    // TODO - check the permission of requester
+
+    // Verify membership exists
+    const membership =
+      await this.tenantMembershipRepository.findByTenantAndUser(
+        tenantId,
+        userId
+      );
+    if (!membership) {
+      throw new HttpError(404, "Membership not found");
+    }
+
+    // Verify role belongs to the tenant
+    const roles = await this.roleRepository.findByTenantAndRoleIds(tenantId, [
+      roleId,
+    ]);
+    if (roles.length === 0) {
+      throw new HttpError(400, "Invalid role ID for tenant");
+    }
+
+    // Assign role idempotently (using $addToSet)
+    const updated = await this.tenantMembershipRepository.updateRolesAtomic({
+      tenantId,
+      userId,
+      add: [roleId],
+      remove: [],
+    });
+
+    if (!updated) {
+      throw new HttpError(404, "Tenant membership not found");
+    }
+
+    return {
+      tenantId: updated.tenantId,
+      userId: updated.userId,
+      roleId: roleId,
+      membershipVersion: updated.membershipVersion,
     };
   }
 }
