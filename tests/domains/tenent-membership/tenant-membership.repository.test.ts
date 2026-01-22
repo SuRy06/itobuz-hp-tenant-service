@@ -275,5 +275,45 @@ describe("TenantMembershipRepository", () => {
 
       expect(result).toEqual(updatedMembership);
     });
+
+    describe("removePermission", () => {
+      it("should remove a permission and increment version", async () => {
+        const updatedMembership = {
+          tenantId: "t1",
+          userId: "u1",
+          permissions: ["p2", "p3"],
+          membershipVersion: 2,
+        };
+
+        mockModel.findOneAndUpdate.mockReturnValue({
+          lean: jest.fn().mockResolvedValue(updatedMembership),
+        });
+
+        const result = await repository.removePermission("t1", "u1", "p1");
+
+        expect(getTenantMembershipModel).toHaveBeenCalledWith(mockConnection);
+
+        expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
+          { tenantId: "t1", userId: "u1" },
+          {
+            $pull: { permissions: "p1" },
+            $inc: { membershipVersion: 1 },
+          },
+          { new: true }
+        );
+
+        expect(result).toEqual(updatedMembership);
+      });
+
+      it("should return null if membership is not found", async () => {
+        mockModel.findOneAndUpdate.mockReturnValue({
+          lean: jest.fn().mockResolvedValue(null),
+        });
+
+        const result = await repository.removePermission("t1", "u1", "p1");
+
+        expect(result).toBeNull();
+      });
+    });
   });
 });

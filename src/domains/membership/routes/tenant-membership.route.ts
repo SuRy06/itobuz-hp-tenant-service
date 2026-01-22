@@ -395,4 +395,73 @@ router.post(
   tenantMembershipController.assignPermissionsToUser
 );
 
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/users/{userId}/permissions/{permissionId}:
+ *   delete:
+ *     tags:
+ *       - Membership Permissions
+ *     summary: Detach a directly assigned permission from a user
+ *     description: >
+ *       Removes a permission that was directly assigned to the user via the permissions array.
+ *
+ *       **Important notes**:
+ *       - Only removes permissions from the user's direct permissions array
+ *       - Does NOT affect role-based permissions (permissions inherited from roles remain intact)
+ *       - Does NOT affect permission overrides (ALLOW/DENY overrides remain intact)
+ *       - Increments `membershipVersion` to invalidate authorization caches
+ *
+ *       Requires appropriate permissions.
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The tenant ID
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user ID
+ *       - in: path
+ *         name: permissionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The permission ID to remove
+ *     responses:
+ *       200:
+ *         description: Permission removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tenantId:
+ *                   type: string
+ *                   format: uuid
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                 permissionId:
+ *                   type: string
+ *                   description: The permission ID that was removed
+ *                 removed:
+ *                   type: boolean
+ *                   example: true
+ *                 membershipVersion:
+ *                   type: integer
+ *                   description: Updated membership version for cache invalidation
+ *       404:
+ *         description: Membership not found or permission not in user's direct permissions
+ */
+router.delete(
+  "/:tenantId/users/:userId/permissions/:permissionId",
+  tenantMembershipController.detachPermissionFromUser
+);
+
 export default router;

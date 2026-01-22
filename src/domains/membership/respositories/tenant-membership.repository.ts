@@ -122,4 +122,24 @@ export class TenantMembershipRepository {
 
     return updated;
   }
+
+  async removePermission(
+    tenantId: string,
+    userId: string,
+    permissionId: string
+  ): Promise<tenantMembershipInterface | null> {
+    const connection = this.mongoDBConnectionManager.getConnection();
+    const MembershipModel = getTenantMembershipModel(connection);
+
+    const updated = await MembershipModel.findOneAndUpdate(
+      { tenantId: tenantId, userId: userId },
+      {
+        $pull: { permissions: permissionId },
+        $inc: { membershipVersion: 1 },
+      },
+      { new: true }
+    ).lean<tenantMembershipInterface>();
+
+    return updated;
+  }
 }

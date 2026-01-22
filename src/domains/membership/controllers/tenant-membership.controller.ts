@@ -205,4 +205,25 @@ export class TenantMembershipController {
       next(err);
     }
   };
+
+  public detachPermissionFromUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { tenantId, userId, permissionId } = req.params;
+
+      const result =
+        await this.tenantMembershipService.detachPermissionFromUser(
+          tenantId,
+          userId,
+          permissionId
+        );
+
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

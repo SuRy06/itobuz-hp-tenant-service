@@ -19,6 +19,7 @@ describe("TenantMembershipService", () => {
       increaseVersion: jest.fn(),
       updateStatus: jest.fn(),
       assignPermissions: jest.fn(),
+      removePermission: jest.fn(),
     } as any;
 
     roleRepository = {
@@ -582,6 +583,154 @@ describe("TenantMembershipService", () => {
         userId: "u1",
         permissionIds: ["perm1"],
         membershipVersion: 6,
+      });
+    });
+  });
+
+  describe("detachPermissionFromUser", () => {
+    it("should throw 404 if membership not found", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue(null);
+
+      await expect(
+        service.detachPermissionFromUser("t1", "u1", "perm1")
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Membership not found",
+      });
+
+      expect(membershipRepository.findByTenantAndUser).toHaveBeenCalledWith(
+        "t1",
+        "u1"
+      );
+    });
+
+    it("should throw 404 if permission not in user's direct permissions", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm2", "perm3"],
+      } as any);
+
+      await expect(
+        service.detachPermissionFromUser("t1", "u1", "perm1")
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Permission not found in user's direct permissions",
+      });
+
+      expect(membershipRepository.findByTenantAndUser).toHaveBeenCalledWith(
+        "t1",
+        "u1"
+      );
+    });
+
+    it("should throw 404 if permission array is empty", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+        permissions: [],
+      } as any);
+
+      await expect(
+        service.detachPermissionFromUser("t1", "u1", "perm1")
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Permission not found in user's direct permissions",
+      });
+    });
+
+    it("should throw 404 if membership not found during removal", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm1"],
+      } as any);
+
+      membershipRepository.removePermission.mockResolvedValue(null);
+
+      await expect(
+        service.detachPermissionFromUser("t1", "u1", "perm1")
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Tenant membership not found",
+      });
+    });
+
+    it("should remove permission successfully", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm1", "perm2"],
+      } as any);
+
+      const updatedMembership = {
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm2"],
+        membershipVersion: 7,
+      };
+
+      membershipRepository.removePermission.mockResolvedValue(
+        updatedMembership as any
+      );
+
+      const result = await service.detachPermissionFromUser(
+        "t1",
+        "u1",
+        "perm1"
+      );
+
+      expect(membershipRepository.removePermission).toHaveBeenCalledWith(
+        "t1",
+        "u1",
+        "perm1"
+      );
+
+      expect(result).toEqual({
+        tenantId: "t1",
+        userId: "u1",
+        permissionId: "perm1",
+        removed: true,
+        membershipVersion: 7,
+      });
+    });
+
+    it("should handle removing last permission", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm1"],
+      } as any);
+
+      const updatedMembership = {
+        tenantId: "t1",
+        userId: "u1",
+        permissions: [],
+        membershipVersion: 8,
+      };
+
+      membershipRepository.removePermission.mockResolvedValue(
+        updatedMembership as any
+      );
+
+      const result = await service.detachPermissionFromUser(
+        "t1",
+        "u1",
+        "perm1"
+      );
+
+      expect(membershipRepository.removePermission).toHaveBeenCalledWith(
+        "t1",
+        "u1",
+        "perm1"
+      );
+
+      expect(result).toEqual({
+        tenantId: "t1",
+        userId: "u1",
+        permissionId: "perm1",
+        removed: true,
+        membershipVersion: 8,
       });
     });
   });

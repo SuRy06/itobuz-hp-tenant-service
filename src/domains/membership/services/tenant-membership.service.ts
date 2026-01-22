@@ -294,4 +294,58 @@ export class TenantMembershipService {
       membershipVersion: updated.membershipVersion,
     };
   }
+
+  async detachPermissionFromUser(
+    tenantId: string,
+    userId: string,
+    permissionId: string
+  ): Promise<{
+    tenantId: string;
+    userId: string;
+    permissionId: string;
+    removed: boolean;
+    membershipVersion: number;
+  }> {
+    // TODO - check the permission of requester
+
+    // Verify membership exists
+    const membership =
+      await this.tenantMembershipRepository.findByTenantAndUser(
+        tenantId,
+        userId
+      );
+    if (!membership) {
+      throw new HttpError(404, "Membership not found");
+    }
+
+    // Check if permission exists in user's direct permissions
+    if (
+      !membership.permissions ||
+      !membership.permissions.includes(permissionId)
+    ) {
+      throw new HttpError(
+        404,
+        "Permission not found in user's direct permissions"
+      );
+    }
+
+    // Remove permission
+    const updated = await this.tenantMembershipRepository.removePermission(
+      tenantId,
+      userId,
+      permissionId
+    );
+
+    if (!updated) {
+      throw new HttpError(404, "Tenant membership not found");
+    }
+
+    return {
+      tenantId: updated.tenantId,
+      userId: updated.userId,
+      permissionId: permissionId,
+      removed: true,
+      membershipVersion: updated.membershipVersion,
+    };
+  }
 }
