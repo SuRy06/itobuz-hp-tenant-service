@@ -82,9 +82,9 @@ router.patch(
  *           schema:
  *             type: object
  *             required:
- *               - permission_ids
+ *               - permissionIds
  *             properties:
- *               permission_ids:
+ *               permissionIds:
  *                 type: array
  *                 items:
  *                   type: string

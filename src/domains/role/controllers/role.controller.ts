@@ -126,7 +126,7 @@ export class RoleController {
       }
 
       const { tenantId, roleId } = req.params;
-      const { permission_ids } = req.body;
+      const { permissionIds } = req.body;
 
       if (!tenantId || !roleId) {
         throw new HttpError(400, "tenantId and roleId are required");
@@ -135,7 +135,7 @@ export class RoleController {
       const result = await this.roleService.attachPermissionsToRole(
         tenantId,
         roleId,
-        permission_ids
+        permissionIds
       );
 
       res.status(200).json(result);

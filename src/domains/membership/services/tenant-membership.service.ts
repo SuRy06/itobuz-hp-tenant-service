@@ -237,4 +237,61 @@ export class TenantMembershipService {
       membershipVersion: updated.membershipVersion,
     };
   }
+
+  async assignPermissionsToUser(
+    tenantId: string,
+    userId: string,
+    permissionIds: string[]
+  ): Promise<{
+    tenantId: string;
+    userId: string;
+    permissionIds: string[];
+    membershipVersion: number;
+  }> {
+    // TODO - check the permission of requester
+
+    // Verify membership exists
+    const membership =
+      await this.tenantMembershipRepository.findByTenantAndUser(
+        tenantId,
+        userId
+      );
+    if (!membership) {
+      throw new HttpError(404, "Membership not found");
+    }
+
+    // Validate all permission IDs
+    const validationPromises = permissionIds.map((permissionId) =>
+      this.permissionRepository.findByPermissionId(permissionId)
+    );
+    const permissions = await Promise.all(validationPromises);
+
+    const invalidPermissions = permissionIds.filter(
+      (_, index) => !permissions[index]
+    );
+    if (invalidPermissions.length > 0) {
+      throw new HttpError(
+        400,
+        `Invalid permission ID(s): ${invalidPermissions.join(", ")}`
+      );
+    }
+
+    // Assign permissions idempotently (using $addToSet)
+    const updated = await this.tenantMembershipRepository.assignPermissions(
+      tenantId,
+      userId,
+      permissionIds
+    );
+
+    if (!updated) {
+      throw new HttpError(404, "Tenant membership not found");
+    }
+
+    return {
+      tenantId: updated.tenantId,
+      userId: updated.userId,
+      permissionIds: permissionIds,
+      membershipVersion: updated.membershipVersion,
+    };
+  }
 }

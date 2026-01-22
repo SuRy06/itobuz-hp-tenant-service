@@ -206,4 +206,74 @@ describe("TenantMembershipRepository", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("assignPermissions", () => {
+    it("should assign permissions and increment version", async () => {
+      const updatedMembership = {
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["p1", "p2", "p3"],
+        membershipVersion: 2,
+      };
+
+      mockModel.findOneAndUpdate.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(updatedMembership),
+      });
+
+      const result = await repository.assignPermissions("t1", "u1", [
+        "p1",
+        "p2",
+        "p3",
+      ]);
+
+      expect(getTenantMembershipModel).toHaveBeenCalledWith(mockConnection);
+
+      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { tenantId: "t1", userId: "u1" },
+        {
+          $addToSet: { permissions: { $each: ["p1", "p2", "p3"] } },
+          $inc: { membershipVersion: 1 },
+        },
+        { new: true }
+      );
+
+      expect(result).toEqual(updatedMembership);
+    });
+
+    it("should return null if membership is not found", async () => {
+      mockModel.findOneAndUpdate.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(null),
+      });
+
+      const result = await repository.assignPermissions("t1", "u1", ["p1"]);
+
+      expect(result).toBeNull();
+    });
+
+    it("should handle empty permission array", async () => {
+      const updatedMembership = {
+        tenantId: "t1",
+        userId: "u1",
+        permissions: [],
+        membershipVersion: 2,
+      };
+
+      mockModel.findOneAndUpdate.mockReturnValue({
+        lean: jest.fn().mockResolvedValue(updatedMembership),
+      });
+
+      const result = await repository.assignPermissions("t1", "u1", []);
+
+      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { tenantId: "t1", userId: "u1" },
+        {
+          $addToSet: { permissions: { $each: [] } },
+          $inc: { membershipVersion: 1 },
+        },
+        { new: true }
+      );
+
+      expect(result).toEqual(updatedMembership);
+    });
+  });
 });

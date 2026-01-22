@@ -357,7 +357,9 @@ describe("TenantMembershipController", () => {
       mockRequest.body = { permissionId: "perm1", reason: "test reason" };
 
       const serviceError = new Error("Service failed");
-      (validators.permissionOverrideSchema.validate as jest.Mock).mockReturnValue({});
+      (
+        validators.permissionOverrideSchema.validate as jest.Mock
+      ).mockReturnValue({});
       mockService.setOverride.mockRejectedValue(serviceError);
 
       await controller.allowPermissionOverride(
@@ -370,7 +372,9 @@ describe("TenantMembershipController", () => {
     });
 
     it("should handle validation error for deny permission override", async () => {
-      (validators.permissionOverrideSchema.validate as jest.Mock).mockReturnValue({
+      (
+        validators.permissionOverrideSchema.validate as jest.Mock
+      ).mockReturnValue({
         error: { details: [{ message: "Validation failed" }] },
       });
 
@@ -388,7 +392,9 @@ describe("TenantMembershipController", () => {
       mockRequest.body = { permissionId: "perm1", reason: "test reason" };
 
       const serviceError = new Error("Service failed");
-      (validators.permissionOverrideSchema.validate as jest.Mock).mockReturnValue({});
+      (
+        validators.permissionOverrideSchema.validate as jest.Mock
+      ).mockReturnValue({});
       mockService.setOverride.mockRejectedValue(serviceError);
 
       await controller.denyPermissionOverride(
@@ -420,7 +426,9 @@ describe("TenantMembershipController", () => {
     });
 
     it("should handle validation error for suspend tenant member", async () => {
-      (validators.suspendTenantMemberSchema.validate as jest.Mock).mockReturnValue({
+      (
+        validators.suspendTenantMemberSchema.validate as jest.Mock
+      ).mockReturnValue({
         error: { details: [{ message: "Validation failed" }] },
       });
 
@@ -438,7 +446,9 @@ describe("TenantMembershipController", () => {
       mockRequest.body = {};
 
       const serviceError = new Error("Service failed");
-      (validators.suspendTenantMemberSchema.validate as jest.Mock).mockReturnValue({});
+      (
+        validators.suspendTenantMemberSchema.validate as jest.Mock
+      ).mockReturnValue({});
       mockService.suspendMembership.mockRejectedValue(serviceError);
 
       await controller.suspendTenantMember(
@@ -470,10 +480,88 @@ describe("TenantMembershipController", () => {
       mockRequest.body = { add: ["role1"], remove: ["role2"] };
 
       const serviceError = new Error("Service failed");
-      (validators.updateMembershipRolesSchema.validate as jest.Mock).mockReturnValue({});
+      (
+        validators.updateMembershipRolesSchema.validate as jest.Mock
+      ).mockReturnValue({});
       mockService.updateMembershipRoles.mockRejectedValue(serviceError);
 
       await controller.updateTenantMembershipRole(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockNext).toHaveBeenCalledWith(serviceError);
+    });
+  });
+
+  describe("assignPermissionsToUser", () => {
+    it("should assign permissions successfully", async () => {
+      mockRequest.params = { tenantId: "tenant1", userId: "user1" };
+      mockRequest.body = { permissionIds: ["perm1", "perm2"] };
+
+      const serviceResponse = {
+        tenantId: "tenant1",
+        userId: "user1",
+        permissionIds: ["perm1", "perm2"],
+        membershipVersion: 5,
+      };
+
+      (
+        validators.assignPermissionsSchema.validate as jest.Mock
+      ).mockReturnValue({});
+      mockService.assignPermissionsToUser.mockResolvedValue(serviceResponse);
+
+      await controller.assignPermissionsToUser(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockService.assignPermissionsToUser).toHaveBeenCalledWith(
+        "tenant1",
+        "user1",
+        ["perm1", "perm2"]
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(serviceResponse);
+    });
+
+    it("should handle validation errors", async () => {
+      mockRequest.params = { tenantId: "tenant1", userId: "user1" };
+      mockRequest.body = {};
+
+      (
+        validators.assignPermissionsSchema.validate as jest.Mock
+      ).mockReturnValue({
+        error: { details: [{ message: "permissionIds is required" }] },
+      });
+
+      await controller.assignPermissionsToUser(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: "permissionIds is required",
+        })
+      );
+    });
+
+    it("should handle service errors", async () => {
+      mockRequest.params = { tenantId: "tenant1", userId: "user1" };
+      mockRequest.body = { permissionIds: ["perm1", "perm2"] };
+
+      const serviceError = new HttpError(404, "Membership not found");
+      (
+        validators.assignPermissionsSchema.validate as jest.Mock
+      ).mockReturnValue({});
+      mockService.assignPermissionsToUser.mockRejectedValue(serviceError);
+
+      await controller.assignPermissionsToUser(
         mockRequest as Request,
         mockResponse as Response,
         mockNext

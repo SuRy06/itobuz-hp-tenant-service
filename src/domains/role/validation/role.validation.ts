@@ -10,5 +10,5 @@ export const updateRolePermissionsSchema = Joi.object({
 });
 
 export const attachPermissionsSchema = Joi.object({
-  permission_ids: Joi.array().items(Joi.string()).min(1).required(),
+  permissionIds: Joi.array().items(Joi.string()).min(1).required(),
 });

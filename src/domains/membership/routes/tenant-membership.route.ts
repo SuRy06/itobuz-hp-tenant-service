@@ -279,9 +279,9 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - role_id
+ *               - roleId
  *             properties:
- *               role_id:
+ *               roleId:
  *                 type: string
  *                 description: Role ID to assign (must belong to the tenant)
  *                 example: "role-admin-123"
@@ -313,6 +313,86 @@ router.post(
 router.post(
   "/:tenantId/users/:userId/roles",
   tenantMembershipController.assignRoleToUser
+);
+
+/**
+ * @openapi
+ * /v1/tenants/{tenantId}/users/{userId}/permissions:
+ *   post:
+ *     tags:
+ *       - Membership Permissions
+ *     summary: Assign permissions directly to a user in a tenant
+ *     description: >
+ *       Assigns one or more permissions directly to a user within a tenant.
+ *
+ *       **Key behaviors**:
+ *       - **Idempotent**: If a permission is already assigned, no duplicate is created
+ *       - Validates all permission IDs against the global permission registry
+ *       - Verifies that the user membership exists in the tenant
+ *       - Increments `membershipVersion` to invalidate authorization caches
+ *
+ *       Requires appropriate permissions.
+ *     parameters:
+ *       - in: path
+ *         name: tenantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The tenant ID
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: The user ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - permissionIds
+ *             properties:
+ *               permissionIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of permission IDs to assign
+ *                 example: ["perm-id-1", "perm-id-2"]
+ *                 minItems: 1
+ *     responses:
+ *       200:
+ *         description: Permissions assigned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 tenantId:
+ *                   type: string
+ *                   format: uuid
+ *                 userId:
+ *                   type: string
+ *                   format: uuid
+ *                 permissionIds:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: The permission IDs that were assigned
+ *                 membershipVersion:
+ *                   type: integer
+ *                   description: Updated membership version for cache invalidation
+ *       400:
+ *         description: Invalid permission ID(s) or validation error
+ *       404:
+ *         description: Membership not found
+ */
+router.post(
+  "/:tenantId/users/:userId/permissions",
+  tenantMembershipController.assignPermissionsToUser
 );
 
 export default router;

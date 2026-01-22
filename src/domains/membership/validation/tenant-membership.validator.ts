@@ -17,3 +17,7 @@ export const suspendTenantMemberSchema = Joi.object({
 export const assignRoleSchema = Joi.object({
   roleId: Joi.string().required(),
 });
+
+export const assignPermissionsSchema = Joi.object({
+  permissionIds: Joi.array().items(Joi.string()).min(1).required(),
+});

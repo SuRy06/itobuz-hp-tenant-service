@@ -10,6 +10,7 @@ export interface tenantMembershipInterface extends Document {
   userId: string;
 
   roles: string[];
+  permissions: string[];
 
   status: membershipStatus;
   expiresAt?: Date | null;
@@ -44,6 +45,11 @@ const tenantMembershipSchema = new Schema<tenantMembershipInterface>(
       default: [],
     },
 
+    permissions: {
+      type: [String],
+      default: [],
+    },
+
     status: {
       type: String,
       enum: ["ACTIVE", "SUSPENDED", "REVOKED"],
@@ -69,6 +75,11 @@ const tenantMembershipSchema = new Schema<tenantMembershipInterface>(
 
 tenantMembershipSchema.index({ tenantId: 1, userId: 1 }, { unique: true });
 
-export const getTenantMembershipModel = (connection: mongoose.Connection): Model<tenantMembershipInterface> => {
-  return connection.model<tenantMembershipInterface>("TenantMembership", tenantMembershipSchema);
+export const getTenantMembershipModel = (
+  connection: mongoose.Connection
+): Model<tenantMembershipInterface> => {
+  return connection.model<tenantMembershipInterface>(
+    "TenantMembership",
+    tenantMembershipSchema
+  );
 };

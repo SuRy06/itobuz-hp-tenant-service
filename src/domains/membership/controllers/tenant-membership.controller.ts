@@ -5,6 +5,7 @@ import {
   suspendTenantMemberSchema,
   updateMembershipRolesSchema,
   assignRoleSchema,
+  assignPermissionsSchema,
 } from "../validation/tenant-membership.validator";
 import { HttpError } from "../../common/errors/http.error";
 import { TenantMembershipService } from "../services/tenant-membership.service";
@@ -171,6 +172,32 @@ export class TenantMembershipController {
         tenantId,
         userId,
         roleId
+      );
+
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public assignPermissionsToUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { error } = assignPermissionsSchema.validate(req.body);
+      if (error) {
+        throw new HttpError(400, error.details[0].message);
+      }
+
+      const { tenantId, userId } = req.params;
+      const { permissionIds } = req.body;
+
+      const result = await this.tenantMembershipService.assignPermissionsToUser(
+        tenantId,
+        userId,
+        permissionIds
       );
 
       res.status(200).json(result);

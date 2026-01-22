@@ -243,7 +243,7 @@ describe("RoleController", () => {
   describe("attachPermissionsToRole", () => {
     it("should call next with validation error", async () => {
       req.body = {
-        permission_ids: "NOT_AN_ARRAY",
+        permissionIds: "NOT_AN_ARRAY",
       };
       req.params = { tenantId: "t1", roleId: "r1" };
 
@@ -254,7 +254,7 @@ describe("RoleController", () => {
     });
 
     it("should call next with error if tenantId is missing", async () => {
-      req.body = { permission_ids: ["p1"] };
+      req.body = { permissionIds: ["p1"] };
       req.params = { roleId: "r1" };
 
       await controller.attachPermissionsToRole(req, res, next);
@@ -263,8 +263,8 @@ describe("RoleController", () => {
       expect(res.status).not.toHaveBeenCalled();
     });
 
-    it("should call next with error if roleId is missing", async () => {
-      req.body = { permission_ids: ["p1"] };
+    it("should call next with error if   roleId is missing", async () => {
+      req.body = { permissionIds: ["p1"] };
       req.params = { tenantId: "t1" };
 
       await controller.attachPermissionsToRole(req, res, next);
@@ -279,7 +279,7 @@ describe("RoleController", () => {
         roleId: "r1",
       };
       req.body = {
-        permission_ids: ["p1", "p2", "p3"],
+        permissionIds: ["p1", "p2", "p3"],
       };
 
       const result = {

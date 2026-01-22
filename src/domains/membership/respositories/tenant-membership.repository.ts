@@ -15,9 +15,13 @@ interface updateRolesInput {
 
 @injectable()
 export class TenantMembershipRepository {
-  constructor(private readonly mongoDBConnectionManager: MongoDBConnectionManager) {}
+  constructor(
+    private readonly mongoDBConnectionManager: MongoDBConnectionManager
+  ) {}
 
-  async updateRolesAtomic(input: updateRolesInput): Promise<tenantMembershipInterface | null> {
+  async updateRolesAtomic(
+    input: updateRolesInput
+  ): Promise<tenantMembershipInterface | null> {
     const { tenantId, userId, add, remove } = input;
 
     const connection = this.mongoDBConnectionManager.getConnection();
@@ -49,7 +53,10 @@ export class TenantMembershipRepository {
     ).lean<tenantMembershipInterface>();
   }
 
-  async findByTenantAndUser(tenantId: string, userId: string): Promise<tenantMembershipInterface | null> {
+  async findByTenantAndUser(
+    tenantId: string,
+    userId: string
+  ): Promise<tenantMembershipInterface | null> {
     const connection = this.mongoDBConnectionManager.getConnection();
     const MembershipModel = getTenantMembershipModel(connection);
     return MembershipModel.findOne({
@@ -58,7 +65,10 @@ export class TenantMembershipRepository {
     }).lean<tenantMembershipInterface>();
   }
 
-  async increaseVersion(tenantId: string, userId: string): Promise<tenantMembershipInterface> {
+  async increaseVersion(
+    tenantId: string,
+    userId: string
+  ): Promise<tenantMembershipInterface> {
     const connection = this.mongoDBConnectionManager.getConnection();
     const MembershipModel = getTenantMembershipModel(connection);
     const updated = await MembershipModel.findOneAndUpdate(
@@ -85,6 +95,26 @@ export class TenantMembershipRepository {
       { tenantId: tenantId, userId: userId },
       {
         $set: { status },
+        $inc: { membershipVersion: 1 },
+      },
+      { new: true }
+    ).lean<tenantMembershipInterface>();
+
+    return updated;
+  }
+
+  async assignPermissions(
+    tenantId: string,
+    userId: string,
+    permissionIds: string[]
+  ): Promise<tenantMembershipInterface | null> {
+    const connection = this.mongoDBConnectionManager.getConnection();
+    const MembershipModel = getTenantMembershipModel(connection);
+
+    const updated = await MembershipModel.findOneAndUpdate(
+      { tenantId: tenantId, userId: userId },
+      {
+        $addToSet: { permissions: { $each: permissionIds } },
         $inc: { membershipVersion: 1 },
       },
       { new: true }

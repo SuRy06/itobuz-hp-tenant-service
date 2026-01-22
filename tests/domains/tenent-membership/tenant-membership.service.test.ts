@@ -18,6 +18,7 @@ describe("TenantMembershipService", () => {
       findByTenantAndUser: jest.fn(),
       increaseVersion: jest.fn(),
       updateStatus: jest.fn(),
+      assignPermissions: jest.fn(),
     } as any;
 
     roleRepository = {
@@ -442,6 +443,144 @@ describe("TenantMembershipService", () => {
         tenantId: "t1",
         userId: "u1",
         roleId: "role1",
+        membershipVersion: 6,
+      });
+    });
+  });
+
+  describe("assignPermissionsToUser", () => {
+    it("should throw 404 if membership not found", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue(null);
+
+      await expect(
+        service.assignPermissionsToUser("t1", "u1", ["perm1"])
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Membership not found",
+      });
+
+      expect(membershipRepository.findByTenantAndUser).toHaveBeenCalledWith(
+        "t1",
+        "u1"
+      );
+    });
+
+    it("should throw 400 if any permission ID is invalid", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+      } as any);
+
+      permissionRepository.findByPermissionId
+        .mockResolvedValueOnce({ permissionId: "perm1" } as any)
+        .mockResolvedValueOnce(null);
+
+      await expect(
+        service.assignPermissionsToUser("t1", "u1", ["perm1", "perm2"])
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: "Invalid permission ID(s): perm2",
+      });
+
+      expect(permissionRepository.findByPermissionId).toHaveBeenCalledTimes(2);
+    });
+
+    it("should throw 404 if membership not found during assignment", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+      } as any);
+
+      permissionRepository.findByPermissionId.mockResolvedValue({
+        permissionId: "perm1",
+      } as any);
+
+      membershipRepository.assignPermissions.mockResolvedValue(null);
+
+      await expect(
+        service.assignPermissionsToUser("t1", "u1", ["perm1"])
+      ).rejects.toMatchObject({
+        statusCode: 404,
+        message: "Tenant membership not found",
+      });
+    });
+
+    it("should assign permissions successfully", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+      } as any);
+
+      permissionRepository.findByPermissionId
+        .mockResolvedValueOnce({ permissionId: "perm1" } as any)
+        .mockResolvedValueOnce({ permissionId: "perm2" } as any);
+
+      const updatedMembership = {
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm1", "perm2"],
+        membershipVersion: 5,
+      };
+
+      membershipRepository.assignPermissions.mockResolvedValue(
+        updatedMembership as any
+      );
+
+      const result = await service.assignPermissionsToUser("t1", "u1", [
+        "perm1",
+        "perm2",
+      ]);
+
+      expect(membershipRepository.assignPermissions).toHaveBeenCalledWith(
+        "t1",
+        "u1",
+        ["perm1", "perm2"]
+      );
+
+      expect(result).toEqual({
+        tenantId: "t1",
+        userId: "u1",
+        permissionIds: ["perm1", "perm2"],
+        membershipVersion: 5,
+      });
+    });
+
+    it("should handle idempotent permission assignment", async () => {
+      membershipRepository.findByTenantAndUser.mockResolvedValue({
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm1"],
+      } as any);
+
+      permissionRepository.findByPermissionId.mockResolvedValue({
+        permissionId: "perm1",
+      } as any);
+
+      const updatedMembership = {
+        tenantId: "t1",
+        userId: "u1",
+        permissions: ["perm1"],
+        membershipVersion: 6,
+      };
+
+      membershipRepository.assignPermissions.mockResolvedValue(
+        updatedMembership as any
+      );
+
+      const result = await service.assignPermissionsToUser("t1", "u1", [
+        "perm1",
+      ]);
+
+      expect(membershipRepository.assignPermissions).toHaveBeenCalledWith(
+        "t1",
+        "u1",
+        ["perm1"]
+      );
+
+      expect(result).toEqual({
+        tenantId: "t1",
+        userId: "u1",
+        permissionIds: ["perm1"],
         membershipVersion: 6,
       });
     });
